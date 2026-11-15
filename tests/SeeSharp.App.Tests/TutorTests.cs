@@ -323,6 +323,65 @@ public sealed class TutorTests : IDisposable
     }
 
     [Fact]
+    public async Task An_answer_can_be_kept_as_a_draft_and_edited_after_submitting_which_needs_accepting_again()
+    {
+        Locale.Apply("de");
+        var app = await AppHost.BuildAsync(WriteCourse(), port: 0, admin: false, _store);
+        var state = app.Services.GetRequiredService<CourseState>();
+        var first = state.Course!.Modules[0].Exercises[0];
+        var o2 = first.Manifest.Items.OfType<OpenItem>().Single(i => i.Id == "o2");
+        var verdicts = new Queue<string>();
+        var http = new HttpClient(new Stub(_ => Anthropic(verdicts.Dequeue(), 500, 50)));
+        state.Settings = new Settings { TutorProvider = Tutor.Anthropic, TutorApiKey = Key };
+        await app.StartAsync();
+        try
+        {
+            using var web = new HttpClient { BaseAddress = new Uri(app.Urls.First()) };
+            static int Disabled(string page) => page.Split("<textarea").Skip(1).Count(t => t[..t.IndexOf('>')].Contains("disabled"));
+
+            // A draft before the first submit: shown in the open box, nothing recorded.
+            _store.SaveDraft("first", "o2", "Halbfertiger Gedanke", DateTimeOffset.Now);
+            var page = await web.GetStringAsync("/exercise/first");
+            Assert.Contains("Halbfertiger Gedanke", page);
+            Assert.Contains("Entwurf gespeichert um", page);
+            Assert.Contains("Als Entwurf speichern", page);
+            Assert.Empty(_store.Attempts("first"));
+
+            // Accepted: the draft is gone, the box locks and offers editing.
+            verdicts.Enqueue("{\"verdict\":\"pass\",\"feedback\":\"Passt.\"}");
+            var (attempt, _, _) = await Tutor.SubmitOpenAsync(http, state, first, o2, "Zur Übersetzungszeit.", TimeSpan.FromSeconds(5));
+            Assert.True(attempt!.Passed);
+            _store.DeleteDraft("first", "o2"); // what the page does after a submit
+            page = await web.GetStringAsync("/exercise/first");
+            Assert.Equal(1, Disabled(page));
+            Assert.Contains("Antwort bearbeiten", page);
+            Assert.Contains("o2", _store.PassedItems("first"));
+
+            // A draft of the accepted answer reopens the box; the approval still holds until the edit is sent.
+            _store.SaveDraft("first", "o2", "Zur Übersetzungszeit, durch den Compiler.", DateTimeOffset.Now);
+            page = await web.GetStringAsync("/exercise/first");
+            Assert.Equal(0, Disabled(page));
+            Assert.Contains("Bearbeiten abbrechen", page);
+            Assert.Contains("o2", _store.PassedItems("first"));
+
+            // Sent back: approval gone until the new answer is accepted.
+            verdicts.Enqueue("{\"verdict\":\"revise\",\"feedback\":\"Was genau prüft er?\"}");
+            (attempt, _, _) = await Tutor.SubmitOpenAsync(http, state, first, o2, "Durch den Compiler.", TimeSpan.FromSeconds(5));
+            Assert.False(attempt!.Passed);
+            Assert.DoesNotContain("o2", _store.PassedItems("first"));
+            verdicts.Enqueue("{\"verdict\":\"pass\",\"feedback\":\"Jetzt passt es.\"}");
+            (attempt, _, _) = await Tutor.SubmitOpenAsync(http, state, first, o2, "Der Compiler prüft die Typen.", TimeSpan.FromSeconds(5));
+            Assert.True(attempt!.Passed);
+            Assert.Contains("o2", _store.PassedItems("first"));
+        }
+        finally
+        {
+            await app.StopAsync();
+            await app.DisposeAsync();
+        }
+    }
+
+    [Fact]
     public async Task CheckAsync_looks_up_the_model_with_the_key_and_names_what_is_wrong()
     {
         Locale.Apply("de");

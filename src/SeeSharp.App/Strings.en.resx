@@ -276,6 +276,14 @@
   <data name="TutorKeyRejected" xml:space="preserve"><value>The provider rejects the API key (HTTP {0}). Check the key in the settings.</value></data>
   <data name="TutorSaveWithoutTutor" xml:space="preserve"><value>Save without tutor</value></data>
   <data name="TutorJudgeUnchecked" xml:space="preserve"><value>The AI tutor has not checked this answer yet. Submit it to have it judged.</value></data>
+  <data name="DraftSave" xml:space="preserve"><value>Save as draft</value></data>
+  <data name="DraftSaved" xml:space="preserve"><value>Draft saved at {0} – not submitted yet.</value></data>
+  <data name="EditAnswer" xml:space="preserve"><value>Edit answer</value></data>
+  <data name="EditCancel" xml:space="preserve"><value>Cancel editing</value></data>
+  <data name="EditHint" xml:space="preserve"><value>When you submit the changed answer it is judged again: the previous approval is gone until the new answer is accepted.</value></data>
+  <data name="WriteFailed" xml:space="preserve"><value>The file could not be written: {0}</value></data>
+  <data name="UnhandledError" xml:space="preserve"><value>An error occurred.</value></data>
+  <data name="ReloadPage" xml:space="preserve"><value>Reload</value></data>
   <data name="TutorJudgeSkipped" xml:space="preserve"><value>Saved without the AI tutor – your answer counts as passed; your supervisor will look at it.</value></data>
   <data name="TutorJudging" xml:space="preserve"><value>The tutor is checking your answer …</value></data>
   <data name="TutorJudgePass" xml:space="preserve"><value>The tutor accepted your answer.</value></data>

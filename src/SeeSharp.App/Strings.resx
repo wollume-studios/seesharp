@@ -276,6 +276,14 @@
   <data name="TutorKeyRejected" xml:space="preserve"><value>Der Anbieter lehnt den API-Schlüssel ab (HTTP {0}). Prüfe den Schlüssel in den Einstellungen.</value></data>
   <data name="TutorSaveWithoutTutor" xml:space="preserve"><value>Ohne Tutor speichern</value></data>
   <data name="TutorJudgeUnchecked" xml:space="preserve"><value>Diese Antwort hat der KI-Tutor noch nicht geprüft. Sende sie ab, dann bewertet er sie.</value></data>
+  <data name="DraftSave" xml:space="preserve"><value>Als Entwurf speichern</value></data>
+  <data name="DraftSaved" xml:space="preserve"><value>Entwurf gespeichert um {0} – noch nicht abgeschickt.</value></data>
+  <data name="EditAnswer" xml:space="preserve"><value>Antwort bearbeiten</value></data>
+  <data name="EditCancel" xml:space="preserve"><value>Bearbeiten abbrechen</value></data>
+  <data name="EditHint" xml:space="preserve"><value>Schickst du die geänderte Antwort ab, wird sie neu bewertet: Die bisherige Freigabe entfällt, bis die neue Antwort angenommen ist.</value></data>
+  <data name="WriteFailed" xml:space="preserve"><value>Die Datei konnte nicht geschrieben werden: {0}</value></data>
+  <data name="UnhandledError" xml:space="preserve"><value>Es ist ein Fehler aufgetreten.</value></data>
+  <data name="ReloadPage" xml:space="preserve"><value>Neu laden</value></data>
   <data name="TutorJudgeSkipped" xml:space="preserve"><value>Ohne KI-Tutor gespeichert – deine Antwort gilt als bestanden; die Betreuung sieht sie sich an.</value></data>
   <data name="TutorJudging" xml:space="preserve"><value>Der Tutor prüft deine Antwort …</value></data>
   <data name="TutorJudgePass" xml:space="preserve"><value>Der Tutor hat deine Antwort angenommen.</value></data>

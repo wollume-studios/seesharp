@@ -34,6 +34,22 @@ public sealed class ProgressStoreTests : IDisposable
             m.Exercises.Select((e, j) => new Exercise($"/course/modules/{i + 1:00}-{m.Module}/{j + 1:00}-{e.Id}", j + 1, e)).ToList())).ToList());
 
     [Fact]
+    public void A_draft_is_kept_per_item_replaced_on_save_and_gone_after_delete()
+    {
+        using var store = new ProgressStore(DbPath);
+        Assert.Null(store.Draft("ex", "o1"));
+        store.SaveDraft("ex", "o1", "erster Entwurf", T0);
+        store.SaveDraft("ex", "o1", "zweiter Entwurf, mit „Umlauten“", T0.AddMinutes(5));
+        store.SaveDraft("ex", "o2", "anderes Item", T0);
+
+        Assert.Equal(("zweiter Entwurf, mit „Umlauten“", T0.AddMinutes(5)), store.Draft("ex", "o1"));
+        store.DeleteDraft("ex", "o1");
+        Assert.Null(store.Draft("ex", "o1"));
+        Assert.Equal("anderes Item", store.Draft("ex", "o2")?.Text);
+        Assert.Empty(store.Attempts()); // a draft is no attempt
+    }
+
+    [Fact]
     public void Creates_the_file_and_migrates_idempotently()
     {
         using (var first = new ProgressStore(DbPath))

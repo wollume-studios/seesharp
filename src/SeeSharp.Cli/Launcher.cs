@@ -23,22 +23,25 @@ internal static class Launcher
 
     /// <summary>
     /// The Start menu entry (and with <paramref name="desktop"/> a desktop one), pointing at the installed tool. A window start only
-    /// adds a missing Start menu entry; <c>init</c> writes both, so a desktop icon someone deleted stays deleted.
+    /// adds a missing Start menu entry; <c>init</c> writes both, so a desktop icon someone deleted stays deleted. With
+    /// <paramref name="admin"/> (a start with <c>--admin</c>) it is the supervisor's own entry, "SeeSharp (Betreuung)", Start menu only.
     /// </summary>
-    public static void EnsureShortcuts(bool desktop)
+    public static void EnsureShortcuts(bool desktop, bool admin = false)
     {
         if (!OperatingSystem.IsWindows() || !File.Exists(Tool)) // a checkout without the installed tool has nothing to point at
             return;
-        var links = new List<string> { Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Programs), "SeeSharp.lnk") };
-        if (desktop)
-            links.Add(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "SeeSharp.lnk"));
+        var name = admin ? "SeeSharp (Betreuung).lnk" : "SeeSharp.lnk";
+        string[] args = admin ? ["--admin"] : [];
+        var links = new List<string> { Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Programs), name) };
+        if (desktop && !admin)
+            links.Add(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), name));
         else if (File.Exists(links[0]))
             return;
         var script = new StringBuilder("$shell = New-Object -ComObject WScript.Shell; ");
         foreach (var link in links)
             script.Append($"$l = $shell.CreateShortcut({Quote(link)}); $l.TargetPath = {Quote(Conhost)}; " +
-                          $"$l.Arguments = {Quote(HeadlessArguments(Tool, []))}; $l.IconLocation = {Quote(AppWindow.IconFile())}; " +
-                          $"$l.Description = 'SeeSharp'; $l.Save(); ");
+                          $"$l.Arguments = {Quote(HeadlessArguments(Tool, args))}; $l.IconLocation = {Quote(AppWindow.IconFile())}; " +
+                          $"$l.Description = {Quote(Path.GetFileNameWithoutExtension(name))}; $l.Save(); ");
         try
         {
             using var process = Process.Start(new ProcessStartInfo("powershell.exe", $"-NoProfile -NonInteractive -EncodedCommand {Encode(script.ToString())}")

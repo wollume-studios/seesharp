@@ -33,6 +33,8 @@ terminal. `seesharp init` writes "SeeSharp" to the Start menu and the desktop; a
 start adds a missing Start menu entry only, so a deleted desktop icon stays deleted. The
 icon (`seesharp.ico`, embedded) is written to `%LOCALAPPDATA%\SeeSharp\seesharp.ico`
 for the shortcuts and the window. The command line is only needed to install.
+The supervisor starts `seesharp --admin` once in a terminal; that start adds
+"SeeSharp (Betreuung)" (`--admin`, Start menu only) next to "SeeSharp".
 
 **Update on start** (`SelfUpdate`): a window start asks nuget.org (at most 5 s). With a
 newer release a PowerShell window opens (visible on purpose: a click on the icon should not
@@ -578,6 +580,20 @@ verdict and needs non-blank feedback; anything else is an error.
 | reload: latest attempt passed without a verdict, tutor works now | unchanged | "Diese Antwort hat der KI-Tutor noch nicht geprüft …", box open so the tutor can still judge it |
 | exam run | recorded as before, never judged | unchanged |
 
+**Drafts and editing** (user request 2026-11-15). "Als Entwurf speichern" keeps the
+box's text in the `draft` table (migration 6, one per item, PROGRESS-STORE.md):
+no attempt, no judgement, restored on reload with "Entwurf gespeichert um …".
+Submitting removes it. A locked answer (accepted or closed) offers "Antwort
+bearbeiten", which reopens the box with "Bearbeiten abbrechen" and the hint that
+the approval is lost once the change is sent; a saved draft of a submitted
+answer reopens the box by itself. The approval follows the latest answer:
+`ProgressDerivation.PassedItems` counts a question as done when its latest
+answer passed or the last `QuizAttempts` answers failed in a row, so a
+resubmitted edit that the tutor sends back takes the item out of the done set
+until it is accepted again, and each edit gets one correction round. Coding
+items keep "any passing run". Skills already credited stay (the ledger is
+append-only). Exams have no drafts and no editing.
+
 A blank box records nothing (it would use up the correction round). The
 trainee is never blocked: after a failure they retry or save without the tutor. Each judgement
 is a `tutor_exchange` at level 0 (`Tutor.FeedbackLevel`) with `item_id` and
@@ -723,6 +739,14 @@ exercise remarks, then per attempt its remarks and, for line remarks, the
 attempt's source from the trainee's own database in a read-only `CodeView`
 with each remark under its line. When the attempt is not in this database
 (another machine, a reset) the remarks still show with "Zeile N".
+
+**The folder** is the Windows known folder Downloads (`SHGetKnownFolderPath`),
+so a Downloads moved to OneDrive or another drive is found. A failing write
+("Bericht erstellen", "Antwortdatei erstellen") shows "Die Datei konnte nicht
+geschrieben werden: <reason> (<path>)" instead of ending the circuit; before
+2026-11-15 an exception there left the button silently dead. `App.razor` has
+`#blazor-error-ui` ("Es ist ein Fehler aufgetreten. Neu laden"), which
+blazor.web.js shows on any unhandled error.
 
 **Decision — files go to Downloads, not a browser download.** The app window
 is a WebView (Photino); writing server-side to a known folder and showing the

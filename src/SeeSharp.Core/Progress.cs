@@ -62,13 +62,17 @@ public static class ProgressDerivation
     public const int QuizAttempts = 2;
 
     /// <summary>
-    /// Items that are done: any passing attempt, or a question (attempt without source) that used up its
-    /// <see cref="QuizAttempts"/> — a locked wrong answer must not block the trainee forever.
+    /// Items that are done. A coding item: any passing run. A question (attempts without source) counts from its latest
+    /// answer: passed, or <see cref="QuizAttempts"/> failed answers in a row — a locked wrong answer must not block the trainee
+    /// forever. So an answer edited and submitted again after it was accepted needs accepting again (user decision 2026-11-15).
     /// </summary>
     public static IReadOnlySet<string> PassedItems(IEnumerable<Attempt> attempts, string exerciseId) =>
         attempts.Where(a => a.ExerciseId == exerciseId).GroupBy(a => a.ItemId)
-            .Where(g => g.Any(a => a.Passed) || g.Count(a => a.Source is null && !a.Passed) >= QuizAttempts)
+            .Where(g => g.Any(a => a.Source is not null) ? g.Any(a => a.Passed) : FailedInARow(g.ToList()) is 0 or >= QuizAttempts)
             .Select(g => g.Key).ToHashSet(StringComparer.Ordinal);
+
+    /// <summary>Failed answers since the last accepted one, in submission order: 0 when the latest answer passed.</summary>
+    public static int FailedInARow(IReadOnlyList<Attempt> answers) => answers.Reverse().TakeWhile(a => !a.Passed).Count();
 
     /// <summary>Skills in <paramref name="requires"/> not held at least <see cref="SkillState.Practiced"/>. Empty means unlocked.</summary>
     public static IReadOnlyList<string> MissingSkills(IEnumerable<string> requires, IReadOnlyDictionary<string, SkillStatus> held) =>

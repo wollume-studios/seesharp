@@ -6,10 +6,22 @@
     @if (!Locked)
     {
         <button @onclick="() => Submit()" disabled="@_judging">@Strings.Submit</button>
+        @if (Run is null)
+        {
+            <button @onclick="SaveDraft" disabled="@_judging">@Strings.DraftSave</button>
+        }
         @if (_tutorFailed)
         {
             <button @onclick="() => Submit(withoutTutor: true)" disabled="@_judging">@Strings.TutorSaveWithoutTutor</button>
         }
+        @if (_editing)
+        {
+            <button @onclick="CancelEdit" disabled="@_judging">@Strings.EditCancel</button>
+        }
+    }
+    else if (Run is null)
+    {
+        <button @onclick="() => _editing = true">@Strings.EditAnswer</button>
     }
     @if (_judging)
     {
@@ -43,6 +55,14 @@
         <span class="bad">@Strings.TutorJudgeRevise</span>
     }
 </div>
+@if (_editing && History.Count > 0)
+{
+    <p class="hint">@Strings.EditHint</p>
+}
+@if (_draftSaved is { } saved)
+{
+    <p class="hint">@string.Format(Strings.DraftSaved, saved.ToLocalTime().ToString("t", System.Globalization.CultureInfo.CurrentCulture))</p>
+}
 @if (_hint is not null)
 {
     <p class="hint">@_hint</p>
@@ -76,26 +96,52 @@
 
     private readonly System.Diagnostics.Stopwatch _clock = System.Diagnostics.Stopwatch.StartNew();
     private string _text = "";
-    private bool _empty, _passed, _judging, _tutorFailed;
-    private int _failed;
+    private bool _empty, _passed, _judging, _tutorFailed, _editing;
+    private int _failed; // failed answers in a row since the last accepted one
+    private DateTimeOffset? _draftSaved;
     private string? _hint;
     private TutorExchange? _judgement;
 
-    /// <summary>Accepted, or out of tries (one correction round, the quiz rule in <see cref="ProgressDerivation.PassedItems"/>). Exams keep the old open box.</summary>
-    private bool Locked => Run is null && !Unchecked && (_passed || _failed >= ProgressDerivation.QuizAttempts);
+    /// <summary>
+    /// Accepted, or out of tries (one correction round, the quiz rule in <see cref="ProgressDerivation.PassedItems"/>), and not
+    /// reopened with "Antwort bearbeiten". Exams keep the old open box.
+    /// </summary>
+    private bool Locked => Run is null && !Unchecked && !_editing && (_passed || _failed >= ProgressDerivation.QuizAttempts);
 
     /// <summary>Passed without a verdict (saved while the tutor was off or failing) and the tutor works now: it may still judge the answer.</summary>
     private bool Unchecked => Run is null && _passed && _judgement is null && !_judging && Tutor.Judges(State);
 
     protected override void OnInitialized()
     {
-        if (History.Count == 0)
-            return;
-        _text = History[^1].Answer ?? "";
-        _passed = History.Any(a => a.Passed);
-        _failed = History.Count(a => !a.Passed);
-        if (Run is null) // the feedback of the latest attempt survives a reload
-            _judgement = ReviewExport.Judgement(History[^1], History, State.Store.TutorExchanges(Exercise.Manifest.Id));
+        if (History.Count > 0)
+        {
+            // The latest answer decides (an edited answer needs accepting again); in an exam the run's history is all there is.
+            _text = History[^1].Answer ?? "";
+            _passed = History[^1].Passed;
+            _failed = ProgressDerivation.FailedInARow(History);
+            if (Run is null) // the feedback of the latest attempt survives a reload
+                _judgement = ReviewExport.Judgement(History[^1], History, State.Store.TutorExchanges(Exercise.Manifest.Id));
+        }
+        if (Run is null && State.Store.Draft(Exercise.Manifest.Id, Item.Id) is { } draft)
+        {
+            _text = draft.Text;
+            _draftSaved = draft.Timestamp;
+            _editing = History.Count > 0; // a draft of a submitted answer reopens the box
+        }
+    }
+
+    private void SaveDraft()
+    {
+        _draftSaved = DateTimeOffset.Now;
+        State.Store.SaveDraft(Exercise.Manifest.Id, Item.Id, _text, _draftSaved.Value);
+    }
+
+    private void CancelEdit()
+    {
+        State.Store.DeleteDraft(Exercise.Manifest.Id, Item.Id);
+        _draftSaved = null;
+        _editing = false;
+        _text = History.Count > 0 ? History[^1].Answer ?? "" : _text;
     }
 
     private async Task Submit(bool withoutTutor = false)
@@ -119,8 +165,13 @@
                 return; // nothing recorded: the box stays open for another try
         }
         _passed = attempt.Passed;
-        if (!attempt.Passed && !_empty)
-            _failed++;
+        _failed = attempt.Passed ? 0 : _failed + 1;
+        _editing = false;
+        if (Run is null)
+        {
+            State.Store.DeleteDraft(Exercise.Manifest.Id, Item.Id);
+            _draftSaved = null;
+        }
         _clock.Restart();
         await OnChanged.InvokeAsync();
     }

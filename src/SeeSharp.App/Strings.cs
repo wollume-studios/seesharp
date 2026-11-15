@@ -343,6 +343,14 @@ internal static class Strings
     public static string UpdateAvailable => Resources.GetString(nameof(UpdateAvailable))!;
     public static string TutorJudgeSkipped => Resources.GetString(nameof(TutorJudgeSkipped))!;
     public static string TutorJudgeUnchecked => Resources.GetString(nameof(TutorJudgeUnchecked))!;
+    public static string DraftSave => Resources.GetString(nameof(DraftSave))!;
+    public static string DraftSaved => Resources.GetString(nameof(DraftSaved))!;
+    public static string EditAnswer => Resources.GetString(nameof(EditAnswer))!;
+    public static string EditCancel => Resources.GetString(nameof(EditCancel))!;
+    public static string EditHint => Resources.GetString(nameof(EditHint))!;
+    public static string WriteFailed => Resources.GetString(nameof(WriteFailed))!;
+    public static string UnhandledError => Resources.GetString(nameof(UnhandledError))!;
+    public static string ReloadPage => Resources.GetString(nameof(ReloadPage))!;
     public static string TutorSaveWithoutTutor => Resources.GetString(nameof(TutorSaveWithoutTutor))!;
     public static string TutorKeyRejected => Resources.GetString(nameof(TutorKeyRejected))!;
     public static string TutorModelNotFound => Resources.GetString(nameof(TutorModelNotFound))!;

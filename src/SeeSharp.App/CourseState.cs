@@ -37,7 +37,16 @@ public sealed class CourseState(ProgressStore store, string? courseArgument, boo
     /// <summary>The report open on <c>/admin/review</c>; kept here so it survives navigating to another page and back.</summary>
     public ReviewBundle? ReviewBundle { get; set; }
     /// <summary>Where reports and reply files are written for the user to send on; tests point it at a temp folder.</summary>
-    public string OutboxFolder { get; set; } = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+    public string OutboxFolder { get; set; } = DownloadsFolder();
+
+    /// <summary>The user's Downloads folder, also when it was moved (OneDrive, another drive); <c>%USERPROFILE%\Downloads</c> elsewhere.</summary>
+    private static string DownloadsFolder() =>
+        OperatingSystem.IsWindows() && SHGetKnownFolderPath(new Guid("374DE290-123F-4565-9164-39C4925E467B"), 0, IntPtr.Zero, out var path) == 0
+            ? path
+            : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+
+    [System.Runtime.InteropServices.DllImport("shell32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode, ExactSpelling = true)]
+    private static extern int SHGetKnownFolderPath(in Guid id, uint flags, IntPtr token, out string path);
 
     /// <summary>Opens Explorer on <paramref name="file"/> so it can be dragged into a mail or chat. Failure is not fatal — the path is shown.</summary>
     public static void ShowInFolder(string file)

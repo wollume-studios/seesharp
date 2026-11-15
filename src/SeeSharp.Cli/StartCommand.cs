@@ -33,7 +33,11 @@ internal static class StartCommand
         if (openBrowser && update && await SelfUpdate.TryHandOverAsync(args))
             return 0;
         if (openBrowser)
+        {
             Launcher.EnsureShortcuts(desktop: false); // installs from before the shortcuts get theirs on the first start
+            if (admin)
+                Launcher.EnsureShortcuts(desktop: false, admin: true); // the first `seesharp --admin` leaves the supervisor an icon
+        }
         return await AppHost.RunAsync(course, port, openBrowser, admin, Console.Out, review);
     }
 }

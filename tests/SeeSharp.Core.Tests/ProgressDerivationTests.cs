@@ -22,6 +22,24 @@ public class ProgressDerivationTests
     }
 
     [Fact]
+    public void A_question_counts_from_its_latest_answer_and_a_coding_item_from_any_passing_run()
+    {
+        Attempt Answer(string item, bool passed, int minute) => new("ex", item, At(minute), TimeSpan.Zero, passed);
+        Attempt Run(string item, bool passed, int minute) => new("ex", item, At(minute), TimeSpan.Zero, passed, Source: [1]);
+        var attempts = new[]
+        {
+            Answer("edited", true, 0), Answer("edited", false, 1),                         // accepted, edited, sent back: not done
+            Answer("redone", true, 0), Answer("redone", false, 1), Answer("redone", true, 2), // accepted again
+            Answer("closed", true, 0), Answer("closed", false, 1), Answer("closed", false, 2), // correction round used up: done
+            Run("code", true, 0), Run("code", false, 1),                                     // a later red run takes nothing back
+        };
+
+        Assert.Equal(["closed", "code", "redone"], ProgressDerivation.PassedItems(attempts, "ex").Order());
+        Assert.Equal(1, ProgressDerivation.FailedInARow([Answer("edited", true, 0), Answer("edited", false, 1)]));
+        Assert.Equal(0, ProgressDerivation.FailedInARow([Answer("redone", false, 0), Answer("redone", true, 1)]));
+    }
+
+    [Fact]
     public void Passed_items_need_one_passing_attempt_for_that_exercise()
     {
         var attempts = new Attempt[]

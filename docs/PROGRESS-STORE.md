@@ -34,12 +34,15 @@ tutor_exchange   id, exercise_id, timestamp, level (0 judgement, 1–3 hints), q
                  item_id, verdict ("pass"/"revise" for a judgement, else null)           (migration 4)
 remark           id, trainee, exercise_id, item_id, attempt_id, file, line, text, shared, received,
                  timestamp                                                               (migration 5)
+draft            exercise_id, item_id (primary key together), text, timestamp            (migration 6)
 ```
 
 Attempts are never updated or deleted. There is no `exercise passed` column,
 no `item passed` column, no `skill` table: all of that is derived. Remarks are
 not progress and not append-only: they are the supervisor's notes, shared or
-deleted at will (docs/UI.md "Reviewer mode").
+deleted at will (docs/UI.md "Reviewer mode"). Drafts are not progress either:
+an open answer saved but not submitted, overwritten on each save and deleted on
+submit (docs/UI.md "AI tutor", drafts and editing).
 
 ## What an attempt stores
 
@@ -91,7 +94,9 @@ costs one ledger row that the next pass of the same exercise recreates.
 ## Derivation (`SeeSharp.Core.ProgressDerivation`, pure, tested)
 
 - `HeldSkills(ledger)` — highest state per skill, latest timestamp and cause.
-- `PassedItems(attempts, exerciseId)` — items with at least one passing attempt.
+- `PassedItems(attempts, exerciseId)` — coding items with at least one passing run;
+  questions whose latest answer passed or whose last `QuizAttempts` answers failed in a row
+  (an edited answer sent back is not done until accepted again; 2026-11-15).
 - `MissingSkills(requires, held)` — required skills below `practiced`; empty = unlocked.
 - `Transitions(skills, state, cause, timestamp, held)` — rows to append.
 

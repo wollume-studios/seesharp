@@ -131,6 +131,15 @@ public sealed class ProgressStore : IDisposable
             received    INTEGER NOT NULL,
             timestamp   TEXT    NOT NULL);
         """,
+        // 2026-11-15: an answer saved as a draft, not submitted. One per item; submitting removes it.
+        """
+        CREATE TABLE draft (
+            exercise_id TEXT NOT NULL,
+            item_id     TEXT NOT NULL,
+            text        TEXT NOT NULL,
+            timestamp   TEXT NOT NULL,
+            PRIMARY KEY (exercise_id, item_id));
+        """,
     ];
 
     private readonly SqliteConnection _connection;
@@ -407,6 +416,34 @@ public sealed class ProgressStore : IDisposable
                     { Id = reader.GetInt64(0), Received = reader.GetInt64(9) != 0 });
             return remarks;
         }
+    }
+
+    // ----- drafts -----------------------------------------------------------------------------
+
+    /// <summary>Keeps <paramref name="text"/> as the item's draft, replacing an earlier one. Not an attempt: nothing is judged or credited.</summary>
+    public void SaveDraft(string exerciseId, string itemId, string text, DateTimeOffset timestamp)
+    {
+        lock (_lock)
+            Execute("""
+                INSERT INTO draft (exercise_id, item_id, text, timestamp) VALUES ($exercise, $item, $text, $timestamp)
+                ON CONFLICT (exercise_id, item_id) DO UPDATE SET text = excluded.text, timestamp = excluded.timestamp
+                """, ("$exercise", exerciseId), ("$item", itemId), ("$text", text), ("$timestamp", Iso(timestamp))).ExecuteNonQuery();
+    }
+
+    public (string Text, DateTimeOffset Timestamp)? Draft(string exerciseId, string itemId)
+    {
+        lock (_lock)
+        {
+            using var reader = Execute("SELECT text, timestamp FROM draft WHERE exercise_id = $exercise AND item_id = $item",
+                ("$exercise", exerciseId), ("$item", itemId)).ExecuteReader();
+            return reader.Read() ? (reader.GetString(0), ParseIso(reader.GetString(1))) : null;
+        }
+    }
+
+    public void DeleteDraft(string exerciseId, string itemId)
+    {
+        lock (_lock)
+            Execute("DELETE FROM draft WHERE exercise_id = $exercise AND item_id = $item", ("$exercise", exerciseId), ("$item", itemId)).ExecuteNonQuery();
     }
 
     // ----- reads ------------------------------------------------------------------------------

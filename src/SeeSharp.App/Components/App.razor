@@ -79,6 +79,7 @@
         .remark-form textarea { width: 100%; box-sizing: border-box; }
         @@media (max-width: 760px) { .review { grid-template-columns: 1fr; } }
         .update { background: #fff3cd; border-color: #e0c060; }
+        #blazor-error-ui { display: none; position: fixed; bottom: 0; left: 0; right: 0; z-index: 10; padding: 0.6rem 1.5rem; background: #f8d7da; border-top: 1px solid #d9534f; }
         .book { display: inline-block; padding: 0.1rem 0.6rem; border: 1px solid #b8cde6; border-radius: 4px; background: #eef4fb; color: #1e3a5f; text-decoration: none; }
         a.book:hover { background: #dde9f7; text-decoration: underline; }
         span.book { color: #666; background: #f3f3f3; border-color: #ddd; }
@@ -86,6 +87,8 @@
 </head>
 <body>
     <Routes @rendermode="InteractiveServer" />
+    @* blazor.web.js shows this on an unhandled error; without it a crashed page just stops reacting. *@
+    <div id="blazor-error-ui">@Strings.UnhandledError <a href="" class="reload">@Strings.ReloadPage</a></div>
     <script src="_framework/blazor.web.js"></script>
 </body>
 </html>

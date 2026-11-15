@@ -22,7 +22,11 @@
         <p><strong>@string.Format(Strings.ReportFrom, bundle.Trainee is "" ? "?" : bundle.Trainee)</strong>
             · @string.Format(Strings.RemarkCounts, _remarks.Count(r => !r.Shared), _remarks.Count(r => r.Shared))</p>
         <p><button @onclick="WriteReply">@Strings.ReplyWrite</button></p>
-        @if (_reply is { } reply)
+        @if (_replyError is not null)
+        {
+            <p class="bad">@string.Format(Strings.WriteFailed, _replyError)</p>
+        }
+        else if (_reply is { } reply)
         {
             <p class="ok">@string.Format(Strings.ReplyWritten, reply.Count, reply.Path)
                 <button @onclick="() => CourseState.ShowInFolder(reply.Path)">@Strings.ShowInFolder</button></p>
@@ -140,6 +144,7 @@
     private string? _exercise;
     private IReadOnlyList<Remark> _remarks = [];
     private (int Count, string Path)? _reply;
+    private string? _replyError;
     private readonly Dictionary<string, int> _attemptOf = new(); // item id → shown attempt; default is the latest
     private readonly Dictionary<int, string> _fileOf = new();    // attempt id → shown file
 
@@ -184,6 +189,14 @@
         var trainee = State.ReviewBundle!.Trainee;
         var name = string.Concat((trainee is "" ? "trainee" : trainee).Select(c => Path.GetInvalidFileNameChars().Contains(c) ? '_' : c));
         var path = Path.Combine(State.OutboxFolder, $"seesharp-remarks-{name}-{DateTime.Now:yyyyMMdd-HHmm}.json");
-        _reply = (RemarksReply.Write(State.Store, trainee, path), path);
+        _replyError = null;
+        try
+        {
+            _reply = (RemarksReply.Write(State.Store, trainee, path), path);
+        }
+        catch (Exception ex) // see FeedbackPage.WriteReport
+        {
+            _replyError = $"{ex.Message} ({path})";
+        }
     }
 }

@@ -7,7 +7,11 @@
 <h2>@Strings.ReportTitle</h2>
 <p class="hint">@Strings.ReportHint</p>
 <p><button @onclick="WriteReport">@Strings.ReportWrite</button></p>
-@if (_report is { } report)
+@if (_reportError is not null)
+{
+    <p class="bad">@string.Format(Strings.WriteFailed, _reportError)</p>
+}
+else if (_report is { } report)
 {
     <p class="ok">@string.Format(Strings.ReportWritten, report)
         <button @onclick="() => CourseState.ShowInFolder(report)">@Strings.ShowInFolder</button></p>
@@ -47,14 +51,22 @@ else
 @code {
     private const long MaxReplyBytes = 16L * 1024 * 1024;
 
-    private string? _report, _error;
+    private string? _report, _reportError, _error;
     private int? _imported;
 
     private void WriteReport()
     {
         _report = Path.Combine(State.OutboxFolder, $"seesharp-report-{DateTime.Now:yyyyMMdd-HHmm}.zip");
-        File.Delete(_report); // same minute twice: ZipFile.Open(Create) refuses an existing file
-        ReviewExport.Write(State.Store, _report);
+        _reportError = null;
+        try
+        {
+            File.Delete(_report); // same minute twice: ZipFile.Open(Create) refuses an existing file
+            ReviewExport.Write(State.Store, _report);
+        }
+        catch (Exception ex) // an unhandled one would end the circuit without a word: the button would just seem dead
+        {
+            _reportError = $"{ex.Message} ({_report})";
+        }
     }
 
     private async Task Import(InputFileChangeEventArgs e)
