@@ -1,10 +1,11 @@
-@* "taught in Level NN: Title" with a link, or a note that nothing teaches the skill yet. *@
+@* "taught in Level NN: Module › Exercise", both linked, so a locked page names the exercise to do first; or a note that nothing teaches the skill yet. *@
 @inject CourseState State
 
-@if (State.TaughtIn(SkillId) is { } module)
+@if (State.TaughtBy(SkillId) is { } exercise)
 {
+    var module = State.ModuleOf(exercise);
     var title = string.Format(Strings.LevelTitle, module.Order, CourseState.Text(module.Manifest.Title));
-    <span>@Strings.TaughtIn <a href="module/@module.Manifest.Id">@title</a></span>
+    <span>@Strings.TaughtIn <a href="module/@module.Manifest.Id">@title</a> › <a href="exercise/@exercise.Manifest.Id">@CourseState.Text(exercise.Manifest.Title)</a></span>
 }
 else
 {

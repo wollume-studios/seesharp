@@ -64,6 +64,7 @@ public sealed class CourseState(ProgressStore store, string? courseArgument, boo
 
     private Dictionary<string, Skill> _skills = new();
     private Dictionary<string, Module> _taughtIn = new();
+    private Dictionary<string, Exercise> _taughtBy = new();
 
     /// <summary>Re-reads settings and the course from disk. Safe to call while circuits are rendering.</summary>
     public async Task LoadAsync()
@@ -86,8 +87,14 @@ public sealed class CourseState(ProgressStore store, string? courseArgument, boo
         foreach (var module in report.Course.Modules)
             foreach (var skill in module.Exercises.SelectMany(e => e.Manifest.Teaches))
                 taughtIn.TryAdd(skill, module);
+        // A mandatory exercise first: an optional one is no path the trainee is expected to take.
+        var taughtBy = new Dictionary<string, Exercise>(StringComparer.Ordinal);
+        foreach (var exercise in report.Course.ExercisesInOrder.OrderBy(e => e.Manifest.Optional))
+            foreach (var skill in exercise.Manifest.Teaches)
+                taughtBy.TryAdd(skill, exercise);
         _skills = skills;
         _taughtIn = taughtIn;
+        _taughtBy = taughtBy;
         var book = CoursePaths.BookPdf(Settings.BookPdfPath, CoursePath, File.Exists);
         BookPdfPath = File.Exists(book) ? book : null;
         Findings = report.Findings;
@@ -146,6 +153,9 @@ public sealed class CourseState(ProgressStore store, string? courseArgument, boo
 
     /// <summary>The first module in published order with an exercise that teaches the skill.</summary>
     public Module? TaughtIn(string skillId) => _taughtIn.GetValueOrDefault(skillId);
+
+    /// <summary>The first exercise in published order that teaches the skill, a mandatory one before an optional one.</summary>
+    public Exercise? TaughtBy(string skillId) => _taughtBy.GetValueOrDefault(skillId);
 
     public Module? FindModule(string id) => Course?.Modules.FirstOrDefault(m => m.Manifest.Id == id);
     public Exercise? FindExercise(string id) => Course?.ExercisesInOrder.FirstOrDefault(e => e.Manifest.Id == id);

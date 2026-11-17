@@ -85,6 +85,14 @@ disk** without restarting; the content author works in the sibling repo while
 the app runs. Pages call `State.Progress()` (`store.Query(course)`) on every
 render — cheap at this scale and always consistent with the store.
 
+**Item state across navigation.** Going from one exercise to another reuses
+`ExercisePage`; its item components load their state (test result, answer,
+tries) once in `OnInitialized`. Each item `<section>` and the `TutorPanel` carry
+`@key` (exercise, item), so another exercise gets fresh components instead of
+the previous one's result (bug reported 2026-11-17; `ExamRunPage` keys its items
+by run and item the same way). Prerendered tests cannot see this — each request
+is a new circuit — so it was checked by clicking through a scratch host.
+
 **Decision — the progress DB is the real one** (`ProgressStore.DefaultPath`);
 there is no override flag. Delete the file to start over.
 
@@ -107,8 +115,11 @@ page shows after the next click.
 - `/modules`: every module with lock badge, passed/total mandatory exercises,
   "n von m Zusatzaufgaben bestanden" when the module has optional ones, and — when
   locked — the union of its exercises' missing skills, each with "vermittelt
-  in Level NN" linking to the module that first teaches it (or a note that
-  nothing teaches it yet).
+  in Level NN: Modul › Übung" (`SkillSource`) linking the module and the exercise
+  that teaches it — the first mandatory one in published order, else the first
+  optional one (`CourseState.TaughtBy`, user request 2026-11-17) — or a note that
+  nothing teaches it yet. Module and exercise pages show the same for a locked
+  exercise.
 - `/module/{id}`: reading link (book links render as a "📖" pill, `.book`), rendered `summary.de.md`, the skills the level
   teaches as a disabled checklist (checked = practiced or better, state text
   next to it), the "Gelesen" button (`MarkSummaryRead`; shown as done once

@@ -100,6 +100,11 @@ public sealed class ExamPageTests : IDisposable
             Assert.DoesNotContain("href=\"exercise/second\"", side); // locked until a.one is held
             Assert.Contains("href=\"module/basics\"", side);
             Assert.Contains("href=\"exercise/first\"", Side(await http.GetStringAsync("/module/basics")));
+
+            // A locked exercise names the exercise that teaches the missing skill, not only its module.
+            var locked = await http.GetStringAsync("/exercise/second");
+            Assert.Contains("<a href=\"module/basics\">", locked[locked.IndexOf("</aside>", StringComparison.Ordinal)..]);
+            Assert.Contains("› <a href=\"exercise/first\">Erste</a>", locked);
         }
         finally
         {

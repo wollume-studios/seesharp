@@ -59,7 +59,7 @@ else
                 number++;
                 var item = exercise.Manifest.Items.FirstOrDefault(i => i.Id == itemRef.ItemId);
                 var history = _attempts.Where(a => a.ExerciseId == itemRef.ExerciseId && a.ItemId == itemRef.ItemId).ToList();
-                <section class="item">
+                <section class="item" @key="(_run.Id, itemRef)">
                     <p class="hint">@string.Format(Strings.ExamItemNumber, number, _run.Items.Count)</p>
                     @if (item is null)
                     {

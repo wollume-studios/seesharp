@@ -52,7 +52,9 @@ else
             <p class="hint fallback">@Strings.TranslationFallback</p>
         }
         <article class="md">@CourseState.RenderMarkdown(instructions.Path)</article>
-        <TutorPanel Exercise="exercise" />
+        @* @key: navigating to another exercise reuses this page; without a key Blazor would keep the children, whose state
+           (test results, answers, the tutor's question box) is loaded once in OnInitialized and would show the previous exercise. *@
+        <TutorPanel @key="exercise" Exercise="exercise" />
         <ReceivedRemarks Exercise="exercise" Attempts="_attempts" />
 
         @if (exercise.Manifest.Requires.Count > 0)
@@ -71,7 +73,7 @@ else
         @foreach (var item in exercise.Manifest.Items)
         {
             var history = _attempts.Where(a => a.ItemId == item.Id).ToList();
-            <section class="item">
+            <section class="item" @key="(exercise, item.Id)">
                 @if (exerciseProgress.PassedItems.Contains(item.Id))
                 {
                     <span class="badge ok">@Strings.ItemPassed</span>
