@@ -45,7 +45,7 @@ This repository is licensed under
 [Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International](https://creativecommons.org/licenses/by-nc-sa/4.0/)
 (see [LICENSE](LICENSE)).
 
-The curriculum is based on *Einführung in das Programmieren mit C# 14* by
+The curriculum is based on [*Einführung in das Programmieren mit C# 14*](https://bebagoe.de/csharp/) by
 Bernhard Baltes-Götz and Paul Frischknecht (© 2026), published under the same
 licence. Level summaries and exercises in the course content are condensed
 derivative works of that manuscript; the licence requires attribution of the
