@@ -591,6 +591,20 @@ verdict and needs non-blank feedback; anything else is an error.
 | reload: latest attempt passed without a verdict, tutor works now | unchanged | "Diese Antwort hat der KI-Tutor noch nicht geprüft …", box open so the tutor can still judge it |
 | exam run | recorded as before, never judged | unchanged |
 
+**"Warum ist das falsch?"** (user request 2026-11-17). Under a wrong quiz answer
+(outside exams, tutor set up) a button asks `Tutor.ExplainChoiceAsync` for the
+latest answer; the reply shows under the answer instead of the button, and
+after a reload as well (the last exchange for the item without a verdict, logged
+after the latest attempt). A new answer may ask again. While a try is left the
+request carries the question, the options and the trainee's choice, never the
+correct options or the course's explanation, and `ExplainRule(closed: false)`
+asks for why the choice does not fit plus ONE guiding question without pointing
+at another option. Once the question is closed the trainee sees the correct
+answer anyway, so the request adds it and the explanation and asks for the way
+there step by step. The context leaves out the other items and with them
+`ItemRules`, which forbids exactly this. Logged at level 0 with `item_id`, like
+judgements, so it appears in the review bundle's `tutor/<exercise>.md`.
+
 **Drafts and editing** (user request 2026-11-15). "Als Entwurf speichern" keeps the
 box's text in the `draft` table (migration 6, one per item, PROGRESS-STORE.md):
 no attempt, no judgement, restored on reload with "Entwurf gespeichert um …".

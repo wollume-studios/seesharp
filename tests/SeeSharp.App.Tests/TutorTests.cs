@@ -323,6 +323,57 @@ public sealed class TutorTests : IDisposable
     }
 
     [Fact]
+    public async Task A_wrong_quiz_answer_can_ask_why_without_the_correct_option_until_the_question_is_closed()
+    {
+        Locale.Apply("de");
+        var app = await AppHost.BuildAsync(WriteCourse(), port: 0, admin: false, _store);
+        var state = app.Services.GetRequiredService<CourseState>();
+        var first = state.Course!.Modules[0].Exercises[0];
+        var q1 = first.Manifest.Items.OfType<MultipleChoiceItem>().Single();
+        var stub = new Stub(_ => Anthropic("Option 2 beschreibt **etwas anderes**.", 400, 60));
+        var http = new HttpClient(stub);
+        await app.StartAsync();
+        try
+        {
+            using var web = new HttpClient { BaseAddress = new Uri(app.Urls.First()) };
+            _store.RecordAttempt(new Attempt("first", "q1", DateTimeOffset.UtcNow, TimeSpan.Zero, false, "1"), first.Manifest);
+            Assert.DoesNotContain("Warum ist das falsch?", await web.GetStringAsync("/exercise/first")); // no tutor set up: no button
+
+            state.Settings = new Settings { TutorProvider = Tutor.Anthropic, TutorApiKey = Key };
+            Assert.Contains("Warum ist das falsch?", await web.GetStringAsync("/exercise/first"));
+
+            // A try left: the trainee's answer goes out, the correct option and the course's explanation do not.
+            var (exchange, error) = await Tutor.ExplainChoiceAsync(http, state, first, q1, [1], closed: false);
+            Assert.Null(error);
+            Assert.Equal(("q1", Tutor.FeedbackLevel, null), (exchange!.ItemId, exchange.Level, exchange.Verdict));
+            var request = JsonNode.Parse(stub.Requests[0].Body)!;
+            var message = request["messages"]![0]!["content"]!.ToString();
+            Assert.Contains("My answer: Option 2", message);
+            Assert.Contains("Option 1: Alpha-Antwort", message);
+            Assert.DoesNotContain("Correct answer", message);
+            Assert.DoesNotContain("Geheime-Erkl", message);
+            Assert.Contains("Never name or hint which other option is correct", request["system"]!.ToString());
+            Assert.DoesNotContain("Never say or hint which option is correct", request["system"]!.ToString()); // ItemRules left out
+
+            // The explanation is restored under the answer on reload, instead of the button.
+            var page = await web.GetStringAsync("/exercise/first");
+            Assert.Contains("Option 2 beschreibt <strong>etwas anderes</strong>.", page);
+            Assert.DoesNotContain("Warum ist das falsch?", page);
+
+            // Closed: the trainee sees the correct answer anyway, so the model gets it and the explanation.
+            await Tutor.ExplainChoiceAsync(http, state, first, q1, [1], closed: true);
+            message = JsonNode.Parse(stub.Requests[1].Body)!["messages"]![0]!["content"]!.ToString();
+            Assert.Contains("Correct answer: Option 1", message);
+            Assert.Contains("Geheime-Erkl", message);
+        }
+        finally
+        {
+            await app.StopAsync();
+            await app.DisposeAsync();
+        }
+    }
+
+    [Fact]
     public async Task An_answer_can_be_kept_as_a_draft_and_edited_after_submitting_which_needs_accepting_again()
     {
         Locale.Apply("de");

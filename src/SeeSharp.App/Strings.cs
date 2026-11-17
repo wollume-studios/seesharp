@@ -343,6 +343,8 @@ internal static class Strings
     public static string UpdateAvailable => Resources.GetString(nameof(UpdateAvailable))!;
     public static string TutorJudgeSkipped => Resources.GetString(nameof(TutorJudgeSkipped))!;
     public static string TutorJudgeUnchecked => Resources.GetString(nameof(TutorJudgeUnchecked))!;
+    public static string TutorExplainWrong => Resources.GetString(nameof(TutorExplainWrong))!;
+    public static string TutorExplaining => Resources.GetString(nameof(TutorExplaining))!;
     public static string DraftSave => Resources.GetString(nameof(DraftSave))!;
     public static string DraftSaved => Resources.GetString(nameof(DraftSaved))!;
     public static string EditAnswer => Resources.GetString(nameof(EditAnswer))!;

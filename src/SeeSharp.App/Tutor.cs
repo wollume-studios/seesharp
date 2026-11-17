@@ -162,6 +162,18 @@ public static class Tutor
         "The feedback is short and follows rule 5 for its language: for \"pass\" say briefly what is right; for \"revise\" say what to improve " +
         "and ask ONE guiding question, without giving the answer. Never write a model answer, and never quote or reveal the grading reference.";
 
+    /// <summary>
+    /// The hint rule of <see cref="ExplainChoiceAsync"/> (user request 2026-11-17). While a try is left the model does not get the
+    /// correct options and must not point at one; once the question is closed the trainee already sees them, and so may the model.
+    /// </summary>
+    public static string ExplainRule(bool closed) =>
+        "This is a request to explain why the trainee's answer to one quiz question is wrong; they already know it is wrong. " + (closed
+            ? "The question is closed and the trainee now sees the correct answer. Explain briefly why the chosen option(s) do not fit, " +
+              "then show step by step how to get from the concept to the correct answer. "
+            : "They have one more try. Explain briefly why the chosen option(s) do not fit and which concept decides the question, " +
+              "and ask ONE guiding question that leads towards the right answer. Never name or hint which other option is correct, so the trainee still decides. ") +
+        "Keep it short.";
+
     /// <summary>The supervisor-only rubric as a grading reference: the model may use it, never show it.</summary>
     public static string RubricSection(string? rubric) => $"""
 
@@ -308,6 +320,31 @@ public static class Tutor
         return (Record(store, settings, context.ExerciseId, FeedbackLevel, question, reply with { Text = judgement.Feedback }, itemId, judgement.Verdict), null);
     }
 
+    /// <summary>
+    /// "Warum ist das falsch?" under a wrong quiz answer: explains the trainee's latest answer, logged at <see cref="FeedbackLevel"/>
+    /// with the item. The context leaves out the other items (and with them <see cref="ItemRules"/>, which forbids exactly this);
+    /// the correct options and the reference explanation go along only when <paramref name="closed"/>. Same failure handling as
+    /// <see cref="AskAsync"/>.
+    /// </summary>
+    public static Task<(TutorExchange? Exchange, string? Error)> ExplainChoiceAsync(HttpClient http, CourseState state, Exercise exercise,
+        MultipleChoiceItem item, IReadOnlyCollection<int> chosen, bool closed, CancellationToken cancellationToken = default)
+    {
+        static string Options(IEnumerable<int> indexes) => string.Join(", ", indexes.Order().Select(i => $"Option {i + 1}"));
+        var question = new StringBuilder("Why is my answer wrong?\n\nQuestion")
+            .Append(item.Correct.Count > 1 ? " (several options may be correct)" : "").Append(":\n").Append(CourseState.Text(item.Prompt).Trim()).Append("\n\n")
+            .AppendJoin("\n", item.Options.Select((o, i) => $"Option {i + 1}: {CourseState.Text(o)}"))
+            .Append("\n\nMy answer: ").Append(Options(chosen));
+        if (closed)
+        {
+            question.Append("\n\nCorrect answer: ").Append(Options(item.Correct));
+            if (item.Explanation is not null)
+                question.Append("\n\nExplanation from the course: ").Append(CourseState.Text(item.Explanation));
+        }
+        var context = Context(state, exercise) with { Items = null };
+        return SendAsync(http, state.Settings, state.Store, exercise.Manifest.Id, SystemPrompt(context, ExplainRule(closed)),
+            [("user", question.ToString())], FeedbackLevel, question.ToString(), cancellationToken, item.Id);
+    }
+
     /// <summary>True when an open answer submitted now would be judged: a provider is set up and no exam runs.</summary>
     public static bool Judges(CourseState state) => Enabled(state.Settings) && ConfigProblem(state.Settings) is null && state.Store.ActiveRun() is null;
 
@@ -357,10 +394,11 @@ public static class Tutor
     }
 
     private static async Task<(TutorExchange? Exchange, string? Error)> SendAsync(HttpClient http, Settings settings, ProgressStore store, string exerciseId,
-        string system, IReadOnlyList<(string Role, string Text)> messages, int level, string question, CancellationToken cancellationToken)
+        string system, IReadOnlyList<(string Role, string Text)> messages, int level, string question, CancellationToken cancellationToken,
+        string? itemId = null)
     {
         var (reply, error) = await CallAsync(http, settings, system, messages, cancellationToken);
-        return reply is null ? (null, error) : (Record(store, settings, exerciseId, level, question, reply), null);
+        return reply is null ? (null, error) : (Record(store, settings, exerciseId, level, question, reply, itemId), null);
     }
 
     /// <summary>One request; the reply, or a short message for the trainee when there is none (config, network, HTTP, parse, empty).</summary>

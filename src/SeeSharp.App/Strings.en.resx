@@ -276,6 +276,8 @@
   <data name="TutorKeyRejected" xml:space="preserve"><value>The provider rejects the API key (HTTP {0}). Check the key in the settings.</value></data>
   <data name="TutorSaveWithoutTutor" xml:space="preserve"><value>Save without tutor</value></data>
   <data name="TutorJudgeUnchecked" xml:space="preserve"><value>The AI tutor has not checked this answer yet. Submit it to have it judged.</value></data>
+  <data name="TutorExplainWrong" xml:space="preserve"><value>Why is this wrong? Ask the AI tutor</value></data>
+  <data name="TutorExplaining" xml:space="preserve"><value>The tutor is explaining …</value></data>
   <data name="DraftSave" xml:space="preserve"><value>Save as draft</value></data>
   <data name="DraftSaved" xml:space="preserve"><value>Draft saved at {0} – not submitted yet.</value></data>
   <data name="EditAnswer" xml:space="preserve"><value>Edit answer</value></data>

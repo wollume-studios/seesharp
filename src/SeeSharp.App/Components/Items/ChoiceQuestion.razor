@@ -47,6 +47,26 @@ else if (_submitted)
 {
     <p class="bad">@Strings.AnswerWrong</p>
 }
+@* User request 2026-11-17: a wrong answer can ask the AI tutor why; ExplainChoiceAsync keeps the correct option back while a try is left. *@
+@if (Run is null && _submitted && !_passed)
+{
+    @if (_explanation is { } explanation)
+    {
+        <div class="tutor-feedback"><article class="md">@Tutor.Render(explanation.Answer)</article></div>
+    }
+    else if (Tutor.Judges(State))
+    {
+        <button @onclick="Explain" disabled="@_explaining">@Strings.TutorExplainWrong</button>
+        @if (_explaining)
+        {
+            <span class="hint">@Strings.TutorExplaining</span>
+        }
+        @if (_explainError is not null)
+        {
+            <p class="bad">@_explainError</p>
+        }
+    }
+}
 @if (Run is null && Locked && Item.Explanation is not null)
 {
     <div class="hint md">@CourseState.MarkdownText(CourseState.Text(Item.Explanation))</div>
@@ -62,9 +82,11 @@ else if (_submitted)
     [Parameter] public ExamRun? Run { get; set; }
 
     private readonly System.Diagnostics.Stopwatch _clock = System.Diagnostics.Stopwatch.StartNew();
-    private HashSet<int> _selected = [];
-    private bool _submitted, _passed;
+    private HashSet<int> _selected = [], _answer = [];
+    private bool _submitted, _passed, _explaining;
     private int _failed;
+    private TutorExchange? _explanation; // of the latest answer; a new answer may ask again
+    private string? _explainError;
 
     /// <summary>Correct, or out of tries (one retry): the answer is final. In an exam one submission is final.</summary>
     private bool Locked => Run is not null ? _submitted : _passed || _failed >= ProgressDerivation.QuizAttempts;
@@ -77,6 +99,18 @@ else if (_submitted)
         _passed = History.Any(a => a.Passed);
         _failed = History.Count(a => !a.Passed);
         _selected = (History[^1].Answer ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries).Select(int.Parse).ToHashSet();
+        _answer = [.. _selected];
+        if (Run is null) // an explanation asked for the latest answer survives a reload
+            _explanation = State.Store.TutorExchanges(Exercise.Manifest.Id)
+                .LastOrDefault(t => t.ItemId == Item.Id && t.Verdict is null && t.Timestamp >= History[^1].Timestamp);
+    }
+
+    private async Task Explain()
+    {
+        _explaining = true;
+        _explainError = null;
+        (_explanation, _explainError) = await Tutor.ExplainChoiceAsync(Tutor.Http, State, Exercise, Item, _answer, closed: Locked);
+        _explaining = false;
     }
 
     private void Toggle(int index, bool on)
@@ -90,6 +124,9 @@ else if (_submitted)
         attempt = Run is null ? State.Store.RecordAttempt(attempt, Exercise.Manifest) : State.Store.RecordAttempt(attempt with { ExamRunId = Run.Id });
         _submitted = true;
         _passed = attempt.Passed;
+        _answer = [.. _selected];
+        _explanation = null;
+        _explainError = null;
         if (!attempt.Passed)
             _failed++;
         _clock.Restart();
