@@ -6,6 +6,8 @@ from a separate repository on disk, and grades coding exercises by running unit
 tests. Trainees write code in JetBrains Rider, VS Code or Visual Studio; SeeSharp
 opens the right file at the right line.
 
+Website: <https://wollume-studios.github.io/seesharp/>
+
 Course content lives in a separate repository
 ([wollume-studios/seesharp-course](https://github.com/wollume-studios/seesharp-course))
 and is never compiled into this tool.

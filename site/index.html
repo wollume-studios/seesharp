@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="de" data-lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SeeSharp – C# lernen mit Übungen, Tests und Tutor</title>
+<meta name="description" content="SeeSharp: ein interaktiver C#-Kurs für kleine Teams. Lesen, Fragen und Programmierübungen, die per Unit-Tests geprüft werden – lokal, ohne Konto.">
+<link rel="icon" href="favicon.png">
+<!-- The page source lives in site/ of the repo; .github/workflows/pages.yml fills in {{VERSION}} and deploys it with updatePlugins.xml. -->
+<style>
+  :root {
+    --navy: #1e3a5f; --navy-2: #2b4f7c; --ink: #1f2328; --muted: #57606a; --line: #d8dee4;
+    --paper: #ffffff; --wash: #f4f6f9; --accent: #e0c060; --ok: #1a5e1a; --code: #eef2f7;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 17px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--ink); background: var(--paper); }
+  a { color: var(--navy-2); }
+  code { font: 0.9em ui-monospace, "Cascadia Mono", Consolas, monospace; background: var(--code); padding: 0.1em 0.35em; border-radius: 4px; }
+  .wrap { max-width: 68rem; margin: 0 auto; padding: 0 1rem; }
+
+  header.top { background: var(--navy); color: #fff; }
+  header.top .wrap { display: flex; align-items: center; gap: 1rem; min-height: 3.5rem; }
+  header.top .brand { display: flex; align-items: center; gap: 0.6rem; font-weight: 700; font-size: 1.15rem; color: #fff; text-decoration: none; }
+  header.top .brand img { width: 28px; height: 28px; }
+  header.top nav { margin-left: auto; display: flex; gap: 1.2rem; align-items: center; flex-wrap: wrap; }
+  header.top nav a { color: #cfe0f5; text-decoration: none; font-size: 0.95rem; }
+  header.top nav a:hover { color: #fff; text-decoration: underline; }
+  .langs button { background: none; border: 0; color: #cfe0f5; font: inherit; font-size: 0.9rem; cursor: pointer; padding: 0.2rem 0.3rem; }
+  .langs button[aria-pressed="true"] { color: #fff; font-weight: 700; }
+
+  .hero { background: linear-gradient(180deg, var(--navy) 0%, var(--navy-2) 100%); color: #fff; padding: 3.5rem 0 4.5rem; }
+  .hero .wrap { display: grid; grid-template-columns: 1.05fr 1fr; gap: 2.5rem; align-items: center; }
+  .hero h1 { font-size: clamp(2rem, 4.5vw, 3rem); line-height: 1.15; margin: 0 0 1rem; }
+  .hero p.lead { font-size: 1.15rem; color: #dce8f6; margin: 0 0 1.5rem; }
+  .hero .shot { border-radius: 10px; box-shadow: 0 18px 50px rgba(0,0,0,0.35); width: 100%; height: auto; display: block; }
+  .install { background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.18); border-radius: 8px; padding: 0.8rem 1rem; }
+  .install code { background: none; color: #fff; padding: 0; font-size: 0.95rem; display: block; white-space: pre-wrap; word-break: break-word; }
+  .install .label { color: #b9cde4; font-size: 0.85rem; display: block; margin-bottom: 0.3rem; }
+  .cta { display: flex; gap: 0.8rem; flex-wrap: wrap; margin-top: 1.2rem; }
+  .btn { display: inline-block; padding: 0.55rem 1.1rem; border-radius: 6px; text-decoration: none; font-weight: 600; }
+  .btn.primary { background: var(--accent); color: #2a2100; }
+  .btn.ghost { border: 1px solid #b9cde4; color: #fff; }
+  .version { color: #b9cde4; font-size: 0.9rem; margin-top: 0.8rem; }
+
+  section { padding: 3.5rem 0; }
+  section.alt { background: var(--wash); }
+  h2 { font-size: 1.8rem; margin: 0 0 0.5rem; }
+  .sub { color: var(--muted); margin: 0 0 2rem; max-width: 46rem; }
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.2rem; }
+  .card { background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 1.2rem 1.3rem; }
+  .card h3 { margin: 0 0 0.4rem; font-size: 1.1rem; color: var(--navy); }
+  .card p { margin: 0; color: var(--muted); font-size: 0.97rem; }
+
+  .tour { display: grid; gap: 2.5rem; }
+  .tour figure { margin: 0; display: grid; grid-template-columns: 1fr 1.6fr; gap: 2rem; align-items: center; }
+  .tour figure:nth-child(even) { grid-template-columns: 1.6fr 1fr; }
+  .tour figure:nth-child(even) figcaption { order: 2; }
+  .tour img { width: 100%; height: auto; border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 8px 24px rgba(30,58,95,0.12); }
+  .tour figcaption h3 { margin: 0 0 0.4rem; color: var(--navy); }
+  .tour figcaption p { margin: 0; color: var(--muted); }
+
+  ol.steps { counter-reset: step; list-style: none; padding: 0; margin: 0; display: grid; gap: 1.1rem; }
+  ol.steps li { counter-increment: step; position: relative; padding-left: 3rem; }
+  ol.steps li::before { content: counter(step); position: absolute; left: 0; top: 0.1rem; width: 2rem; height: 2rem; border-radius: 50%; background: var(--navy); color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 0.95rem; }
+  ol.steps strong { display: block; }
+  pre { background: var(--code); padding: 0.7rem 0.9rem; border-radius: 6px; overflow-x: auto; margin: 0.4rem 0 0; }
+  pre code { background: none; padding: 0; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; }
+  .note { font-size: 0.92rem; color: var(--muted); }
+
+  footer { background: var(--navy); color: #cfe0f5; padding: 2rem 0; font-size: 0.92rem; }
+  footer a { color: #fff; }
+
+  /* Language switch: every text exists twice; the html element's data-lang picks one. */
+  html[data-lang="de"] [lang="en"], html[data-lang="en"] [lang="de"] { display: none !important; }
+
+  @media (max-width: 52rem) {
+    .hero .wrap, .tour figure, .tour figure:nth-child(even), .two { grid-template-columns: 1fr; }
+    .tour figure:nth-child(even) figcaption { order: 0; }
+    .grid { grid-template-columns: 1fr; }
+    header.top nav a.hide-sm { display: none; }
+  }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="./"><img src="img/icon.png" alt=""> SeeSharp</a>
+    <nav>
+      <a class="hide-sm" href="#features"><span lang="de">Funktionen</span><span lang="en">Features</span></a>
+      <a class="hide-sm" href="#install"><span lang="de">Installieren</span><span lang="en">Install</span></a>
+      <a class="hide-sm" href="#supervisors"><span lang="de">Für Betreuer</span><span lang="en">Supervisors</span></a>
+      <a href="https://github.com/wollume-studios/seesharp">GitHub</a>
+      <span class="langs"><button type="button" data-set="de">DE</button><button type="button" data-set="en">EN</button></span>
+    </nav>
+  </div>
+</header>
+
+<div class="hero">
+  <div class="wrap">
+    <div>
+      <h1 lang="de">C# lernen mit echten Übungen – geprüft von Unit-Tests.</h1>
+      <h1 lang="en">Learn C# with real exercises, checked by unit tests.</h1>
+      <p class="lead" lang="de">SeeSharp führt Auszubildende Level für Level durch C#: lesen, Fragen beantworten, Code in Rider schreiben. Jede Programmieraufgabe wird mit Unit-Tests geprüft, ein KI-Tutor gibt Hinweise statt Lösungen, und die Betreuung sieht am Ende, was wirklich gemacht wurde.</p>
+      <p class="lead" lang="en">SeeSharp takes trainees through C# level by level: read, answer questions, write code in Rider. Every coding exercise is graded by unit tests, an AI tutor gives hints instead of answers, and the supervisor sees what was really done.</p>
+      <div class="install">
+        <span class="label" lang="de">Installieren (.NET 10 SDK nötig)</span>
+        <span class="label" lang="en">Install (needs the .NET 10 SDK)</span>
+        <code>dotnet tool install -g SeeSharp.Cli
+seesharp init</code>
+      </div>
+      <div class="cta">
+        <a class="btn primary" href="#install"><span lang="de">So geht’s</span><span lang="en">How it works</span></a>
+        <a class="btn ghost" href="https://github.com/wollume-studios/seesharp/releases/latest"><span lang="de">Neueste Version</span><span lang="en">Latest release</span></a>
+      </div>
+      <p class="version"><span lang="de">Aktuelle Version</span><span lang="en">Current version</span> {{VERSION}} · Windows · <span lang="de">läuft lokal, ohne Konto</span><span lang="en">runs locally, no account</span></p>
+    </div>
+    <img class="shot" src="img/home.png" width="1280" height="760" alt="SeeSharp dashboard with the next exercises grouped by module and the side menu">
+  </div>
+</div>
+
+<section id="features">
+  <div class="wrap">
+    <h2 lang="de">Was SeeSharp kann</h2>
+    <h2 lang="en">What SeeSharp does</h2>
+    <p class="sub" lang="de">Für kleine Teams mit 1–5 Auszubildenden. Alles läuft auf dem eigenen Rechner: kein Server, keine Konten, keine Cloud.</p>
+    <p class="sub" lang="en">For small teams with 1–5 trainees. Everything runs on the trainee’s own machine: no server, no accounts, no cloud.</p>
+    <div class="grid">
+      <div class="card"><h3 lang="de">Übungen mit Unit-Tests</h3><h3 lang="en">Exercises with unit tests</h3>
+        <p lang="de">„Prüfen“ baut den Code und lässt die Tests laufen – in einer sauberen Kopie, damit niemand die Tests anpasst.</p>
+        <p lang="en">“Check” builds the code and runs the tests in a clean copy, so nobody can edit the tests to pass.</p></div>
+      <div class="card"><h3 lang="de">Direkt in der IDE</h3><h3 lang="en">Straight into the IDE</h3>
+        <p lang="de">Ein Klick öffnet die richtige Datei an der richtigen Zeile in Rider, VS Code oder Visual Studio.</p>
+        <p lang="en">One click opens the right file at the right line in Rider, VS Code or Visual Studio.</p></div>
+      <div class="card"><h3 lang="de">KI-Tutor mit Grenzen</h3><h3 lang="en">An AI tutor with limits</h3>
+        <p lang="de">Hinweise in drei Stufen, Bewertung freier Antworten, Erklärung falscher Quiz-Antworten – nie die Lösung. Anthropic, OpenAI oder lokal mit Ollama.</p>
+        <p lang="en">Hints in three levels, judging of free-text answers, explanations of wrong quiz answers – never the solution. Anthropic, OpenAI or local with Ollama.</p></div>
+      <div class="card"><h3 lang="de">Skills statt Seitenzahlen</h3><h3 lang="en">Skills, not page counts</h3>
+        <p lang="de">Jede Übung lehrt und braucht Skills. Gesperrte Aufgaben sagen genau, welche Übung vorher dran ist.</p>
+        <p lang="en">Every exercise teaches and requires skills. A locked task names the exercise to do first.</p></div>
+      <div class="card"><h3 lang="de">Prüfungen</h3><h3 lang="en">Exams</h3>
+        <p lang="de">Übungs- und echte Prüfungen mit Zeitlimit; Ergebnisse erst nach Abgabe, der Tutor schweigt.</p>
+        <p lang="en">Practice and real exams with a time limit; results only after submitting, and the tutor stays quiet.</p></div>
+      <div class="card"><h3 lang="de">Review durch die Betreuung</h3><h3 lang="en">Supervisor review</h3>
+        <p lang="de">Ein Bericht als Datei, Anmerkungen zu einzelnen Codezeilen – privat oder für den Azubi sichtbar.</p>
+        <p lang="en">A report as one file, remarks on single lines of code – private or shared with the trainee.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="alt">
+  <div class="wrap">
+    <h2 lang="de">Ein Rundgang</h2>
+    <h2 lang="en">A quick tour</h2>
+    <p class="sub" lang="de">Der Kurs basiert auf dem Buch „Einführung in das Programmieren mit C# 14“ und verweist auf die passenden Abschnitte.</p>
+    <p class="sub" lang="en">The course is based on the book “Einführung in das Programmieren mit C# 14” and points to the matching sections.</p>
+    <div class="tour">
+      <figure>
+        <figcaption>
+          <h3 lang="de">Lesen, dann üben</h3><h3 lang="en">Read, then practise</h3>
+          <p lang="de">Jedes Level fasst das Buch zusammen und verlinkt die Seite im PDF. Danach folgen Quiz, offene Fragen und Programmieraufgaben.</p>
+          <p lang="en">Every level summarises the book and links the page in the PDF. Quizzes, open questions and coding exercises follow.</p>
+        </figcaption>
+        <img src="img/module.png" width="1280" height="1000" loading="lazy" alt="A SeeSharp module page with the level summary and a book link">
+      </figure>
+      <figure>
+        <figcaption>
+          <h3 lang="de">Prüfen und verstehen</h3><h3 lang="en">Check and understand</h3>
+          <p lang="de">Rote Tests zeigen ihre Meldung. Wer festhängt, fragt den Tutor – der erklärt Begriffe, aber schreibt keinen Code für die Übung.</p>
+          <p lang="en">Failing tests show their message. When stuck, ask the tutor – it explains concepts but writes no code for the exercise.</p>
+        </figcaption>
+        <img src="img/exercise.png" width="1280" height="1330" loading="lazy" alt="A SeeSharp coding exercise with a failing unit test">
+      </figure>
+    </div>
+  </div>
+</section>
+
+<section id="install">
+  <div class="wrap">
+    <h2 lang="de">Installieren</h2>
+    <h2 lang="en">Install</h2>
+    <p class="sub" lang="de">Die Kommandozeile braucht es nur einmal. Danach startet SeeSharp über sein Symbol in einem eigenen Fenster und aktualisiert sich beim Start selbst.</p>
+    <p class="sub" lang="en">The command line is needed once. After that SeeSharp starts from its icon in its own window and updates itself on start.</p>
+    <ol class="steps">
+      <li><strong lang="de">.NET 10 SDK installieren</strong><strong lang="en">Install the .NET 10 SDK</strong>
+        <span lang="de">Von <a href="https://dotnet.microsoft.com/download">dotnet.microsoft.com/download</a>. Git ist nicht nötig.</span>
+        <span lang="en">From <a href="https://dotnet.microsoft.com/download">dotnet.microsoft.com/download</a>. Git is not needed.</span></li>
+      <li><strong lang="de">SeeSharp installieren und einrichten</strong><strong lang="en">Install and set up SeeSharp</strong>
+        <pre><code>dotnet tool install -g SeeSharp.Cli
+seesharp init</code></pre>
+        <span class="note" lang="de"><code>init</code> lädt den Kurs nach <code>%USERPROFILE%\seesharp-course</code> (anderer Ort: <code>--dir &lt;Ordner&gt;</code>), holt das Buch als PDF und legt „SeeSharp“ im Startmenü und auf dem Desktop an.</span>
+        <span class="note" lang="en"><code>init</code> fetches the course to <code>%USERPROFILE%\seesharp-course</code> (elsewhere: <code>--dir &lt;folder&gt;</code>), downloads the book PDF and adds “SeeSharp” to the Start menu and the desktop.</span></li>
+      <li><strong lang="de">Starten</strong><strong lang="en">Start</strong>
+        <span lang="de">Klick auf das Symbol „SeeSharp“. Neue Versionen installiert SeeSharp beim nächsten Start selbst.</span>
+        <span lang="en">Click the “SeeSharp” icon. SeeSharp installs new versions itself on the next start.</span></li>
+    </ol>
+
+    <h3 style="margin-top:2.5rem" lang="de">IDE-Plugins (optional)</h3>
+    <h3 style="margin-top:2.5rem" lang="en">IDE plugins (optional)</h3>
+    <div class="two">
+      <div class="card"><h3>JetBrains Rider</h3>
+        <p lang="de">Noch nicht im JetBrains Marketplace, sondern über ein eigenes Plugin-Repository: Settings → Plugins → ⚙ → <em>Manage Plugin Repositories</em> → diese Adresse hinzufügen, dann „SeeSharp“ im Tab Marketplace installieren:</p>
+        <p lang="en">Not on the JetBrains Marketplace yet, but in its own plugin repository: Settings → Plugins → ⚙ → <em>Manage Plugin Repositories</em> → add this address, then install “SeeSharp” from the Marketplace tab:</p>
+        <pre><code>https://wollume-studios.github.io/seesharp/updatePlugins.xml</code></pre></div>
+      <div class="card"><h3>VS Code</h3>
+        <p lang="de"><a href="https://github.com/wollume-studios/seesharp/releases/download/v{{VERSION}}/seesharp-{{VERSION}}.vsix">seesharp-{{VERSION}}.vsix</a> herunterladen und installieren:</p>
+        <p lang="en">Download <a href="https://github.com/wollume-studios/seesharp/releases/download/v{{VERSION}}/seesharp-{{VERSION}}.vsix">seesharp-{{VERSION}}.vsix</a> and install it:</p>
+        <pre><code>code --install-extension seesharp-{{VERSION}}.vsix</code></pre></div>
+    </div>
+    <p class="note" lang="de">Beide Plugins können die Einrichtung auch selbst übernehmen (<em>Set up SeeSharp</em>).</p>
+    <p class="note" lang="en">Both plugins can also run the setup for you (<em>Set up SeeSharp</em>).</p>
+  </div>
+</section>
+
+<section id="supervisors" class="alt">
+  <div class="wrap">
+    <h2 lang="de">Für Betreuer</h2>
+    <h2 lang="en">For supervisors</h2>
+    <div class="two">
+      <div>
+        <p lang="de">Einmal im Terminal starten – danach gibt es „SeeSharp (Betreuung)“ im Startmenü:</p>
+        <p lang="en">Start it once from a terminal – afterwards “SeeSharp (Betreuung)” is in the Start menu:</p>
+        <pre><code>seesharp --admin</code></pre>
+        <p lang="de">Der Admin-Modus enthält den Kurs-Editor, Git für das Kurs-Repository und das Review. <code>seesharp --review</code> öffnet alle Level unabhängig vom Fortschritt.</p>
+        <p lang="en">Admin mode has the course editor, Git for the course repository and the review. <code>seesharp --review</code> opens every level regardless of progress.</p>
+      </div>
+      <div>
+        <p lang="de"><strong>So läuft ein Review:</strong> Der Azubi erstellt unter „Feedback“ einen Bericht (eine ZIP-Datei) und schickt ihn per Mail oder Chat. Du öffnest ihn unter <em>Admin → Review</em>, liest Antworten und Code und setzt Anmerkungen – auch zu einzelnen Zeilen. Geteilte Anmerkungen gehen als Antwortdatei zurück; private bleiben bei dir.</p>
+        <p lang="en"><strong>How a review works:</strong> the trainee creates a report (one ZIP file) under “Feedback” and sends it by mail or chat. You open it under <em>Admin → Review</em>, read answers and code and add remarks – also on single lines. Shared remarks go back as a reply file; private ones stay with you.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p lang="de">SeeSharp steht unter <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a>. Der Kurs basiert auf <em>Einführung in das Programmieren mit C# 14</em> von Bernhard Baltes-Götz und Paul Frischknecht (© 2026), veröffentlicht unter derselben Lizenz.</p>
+    <p lang="en">SeeSharp is licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a>. The course is based on <em>Einführung in das Programmieren mit C# 14</em> by Bernhard Baltes-Götz and Paul Frischknecht (© 2026), published under the same licence.</p>
+    <p><a href="https://github.com/wollume-studios/seesharp">wollume-studios/seesharp</a> · <a href="https://github.com/wollume-studios/seesharp-course">wollume-studios/seesharp-course</a> · <a href="https://www.nuget.org/packages/SeeSharp.Cli">NuGet</a></p>
+  </div>
+</footer>
+
+<script>
+  // German by default (also without script, via data-lang on <html>); English when the browser prefers it or the visitor picked it.
+  (function () {
+    var root = document.documentElement;
+    var saved = null;
+    try { saved = localStorage.getItem('seesharp-lang'); } catch (e) {}
+    var lang = saved || ((navigator.language || 'de').toLowerCase().indexOf('de') === 0 ? 'de' : 'en');
+    function set(l) {
+      root.setAttribute('data-lang', l);
+      root.setAttribute('lang', l);
+      document.querySelectorAll('.langs button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.set === l)); });
+    }
+    document.querySelectorAll('.langs button').forEach(function (b) {
+      b.addEventListener('click', function () { set(b.dataset.set); try { localStorage.setItem('seesharp-lang', b.dataset.set); } catch (e) {} });
+    });
+    set(lang);
+  })();
+</script>
+</body>
+</html>

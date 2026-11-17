@@ -135,49 +135,12 @@ jobs:
           GH_REPO: ${{ github.repository }}
         run: gh release upload "$TAG" plugins/* --clobber
 
-  # Rider custom plugin repository on GitHub Pages: https://<owner>.github.io/<repo>/updatePlugins.xml,
-  # pointing at the zip attached to this release. Deploys via OIDC, so this job alone gets pages + id-token.
+  # GitHub Pages: the landing page from site/ and the Rider plugin repository (updatePlugins.xml), both naming
+  # this release. Deploys via OIDC, so this job alone gets pages + id-token.
   feed:
     needs: plugins-release
-    runs-on: ubuntu-latest
     permissions:
+      contents: read
       pages: write
       id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
-    steps:
-      - name: Write updatePlugins.xml and index.html
-        env:
-          REPO: ${{ github.repository }}
-        run: |
-          VERSION="${TAG#v}"
-          ZIP="https://github.com/$REPO/releases/download/$TAG/SeeSharp-$VERSION.zip"
-          VSIX="https://github.com/$REPO/releases/download/$TAG/seesharp-$VERSION.vsix"
-          mkdir site
-          # since-build must match SinceBuild in ide/rider/gradle.properties.
-          cat > site/updatePlugins.xml <<EOF
-          <?xml version="1.0" encoding="UTF-8"?>
-          <plugins>
-            <plugin id="dev.seesharp.rider" url="$ZIP" version="$VERSION">
-              <idea-version since-build="262"/>
-              <name>SeeSharp</name>
-              <vendor>SeeSharp</vendor>
-              <description>SeeSharp C# training: exercises, instructions and grading in Rider.</description>
-            </plugin>
-          </plugins>
-          EOF
-          cat > site/index.html <<EOF
-          <!doctype html><meta charset="utf-8"><title>SeeSharp plugins</title>
-          <h1>SeeSharp $VERSION</h1>
-          <p><b>Rider:</b> Settings → Plugins → ⚙ → Manage Plugin Repositories → add
-          <code>https://${REPO%%/*}.github.io/${REPO#*/}/updatePlugins.xml</code>, then install "SeeSharp" from the Marketplace tab.</p>
-          <p><b>VS Code:</b> download <a href="$VSIX">seesharp-$VERSION.vsix</a> and run
-          <code>code --install-extension seesharp-$VERSION.vsix</code>.</p>
-          <p><b>Tool:</b> <code>dotnet tool install -g SeeSharp.Cli</code></p>
-          EOF
-      - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1
-        with:
-          path: site
-      - id: deploy
-        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4.0.5
+    uses: ./.github/workflows/pages.yml

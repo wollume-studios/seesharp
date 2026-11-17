@@ -41,14 +41,17 @@ finds it.
 A tag on a commit of `dev` publishes that commit; usually tag `main` after merging.
 
 The same run also builds the IDE plugins with the tag's version and attaches them to the
-release (`SeeSharp-0.1.0.zip` for Rider, `seesharp-0.1.0.vsix` for VS Code), then deploys a
-Rider plugin repository to GitHub Pages:
+release (`SeeSharp-0.1.0.zip` for Rider, `seesharp-0.1.0.vsix` for VS Code), then calls
+`.github/workflows/pages.yml`, which deploys the website and the Rider plugin repository to GitHub Pages:
 
+- Landing page: `https://wollume-studios.github.io/seesharp/`, source in `site/` (bilingual DE/EN,
+  screenshots in `site/img/`); `{{VERSION}}` is replaced with the latest release's version on deploy.
+  A push to `main` that changes `site/` redeploys it without a release.
 - Feed: `https://wollume-studios.github.io/seesharp/updatePlugins.xml` (points at the zip of the
-  latest release); install notes at `https://wollume-studios.github.io/seesharp/`.
+  latest release). The plugin is not on the JetBrains Marketplace; this feed is how Rider gets it.
 - Pages is set to *GitHub Actions* as its source, and the `github-pages` environment allows
   deployments from `main` and from `v*` tags (set up once via the API on 2026-10-24).
-- Only the `feed` job holds `pages: write` / `id-token: write`. `plugins` builds with `contents: read` (no persisted credentials); `plugins-release`, which runs no third-party code, attaches the files with `contents: write`. `vsce` is pinned in `ide/vscode/package-lock.json`.
+- Only the Pages job holds `pages: write` / `id-token: write`. `plugins` builds with `contents: read` (no persisted credentials); `plugins-release`, which runs no third-party code, attaches the files with `contents: write`. `vsce` is pinned in `ide/vscode/package-lock.json`.
 - `since-build` in the feed is written as 262 and must follow `SinceBuild` in
   `ide/rider/gradle.properties`.
 
