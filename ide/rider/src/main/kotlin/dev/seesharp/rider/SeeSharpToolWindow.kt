@@ -28,6 +28,7 @@ import com.intellij.openapi.application.WriteIntentReadAction
 import com.intellij.openapi.application.runReadActionBlocking
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.fileEditor.OpenFileDescriptor
+import com.intellij.openapi.fileEditor.impl.HTMLEditorProvider
 import com.intellij.openapi.options.BoundConfigurable
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.Task
@@ -46,7 +47,10 @@ import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.openapi.wm.ToolWindowManager
 import com.intellij.ui.ColorUtil
 import com.intellij.ui.ColoredTreeCellRenderer
+import com.intellij.ui.DocumentAdapter
+import com.intellij.ui.DoubleClickListener
 import com.intellij.ui.OnePixelSplitter
+import com.intellij.ui.SearchTextField
 import com.intellij.ui.SimpleTextAttributes
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBScrollPane
@@ -65,6 +69,7 @@ import org.cef.browser.CefFrame
 import org.cef.handler.CefRequestHandlerAdapter
 import org.cef.network.CefRequest
 import java.awt.BorderLayout
+import java.awt.event.MouseEvent
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.Path
@@ -73,6 +78,7 @@ import javax.swing.JEditorPane
 import javax.swing.JPanel
 import javax.swing.JTree
 import javax.swing.ToolTipManager
+import javax.swing.event.DocumentEvent
 import javax.swing.event.HyperlinkEvent
 import javax.swing.tree.DefaultMutableTreeNode
 import javax.swing.tree.DefaultTreeModel
@@ -140,9 +146,13 @@ class SeeSharpPanel(private val project: Project) : SimpleToolWindowPanel(true, 
     private var running = false
     private var rebuilding = false
     private var shownHtml: String? = null
+    private var treeMessage: String? = null
+    private var noCourse = false
 
     private val tree = Tree(DefaultTreeModel(DefaultMutableTreeNode()))
+    private val search = SearchTextField(false)
     private val title = JBLabel()
+    private val openButton = JButton()
     private val checkButton = JButton()
     private val browser = if (JBCefApp.isSupported()) JBCefBrowser() else null
     private val pane = JEditorPane("text/html", "")
@@ -152,27 +162,44 @@ class SeeSharpPanel(private val project: Project) : SimpleToolWindowPanel(true, 
         tree.showsRootHandles = true
         tree.cellRenderer = Renderer()
         ToolTipManager.sharedInstance().registerComponent(tree)
+        // Selecting only shows the exercise; "Öffnen" (or a double-click) opens its file, project or page. A module or nothing: the overview.
         tree.addTreeSelectionListener {
-            if (!rebuilding) ((tree.lastSelectedPathComponent as? DefaultMutableTreeNode)?.userObject as? Exercise)?.let { openExercise(it.id, true) }
+            if (rebuilding) return@addTreeSelectionListener
+            when (val ex = (tree.lastSelectedPathComponent as? DefaultMutableTreeNode)?.userObject as? Exercise) {
+                null -> { detail = null; lastGrade = null; render() }
+                else -> openExercise(ex.id, false)
+            }
         }
+        object : DoubleClickListener() {
+            override fun onDoubleClick(event: MouseEvent): Boolean {
+                val ex = (tree.getPathForLocation(event.x, event.y)?.lastPathComponent as? DefaultMutableTreeNode)?.userObject as? Exercise ?: return false
+                openExercise(ex.id, true)
+                return true
+            }
+        }.installOn(tree)
+        search.textEditor.emptyText.text = t("search")
+        search.addDocumentListener(object : DocumentAdapter() {
+            override fun textChanged(e: DocumentEvent) = rebuildTree(treeMessage, noCourse)
+        })
 
         val toolbar = ActionManager.getInstance().createActionToolbar("SeeSharp", DefaultActionGroup(RefreshAction(), StartAction(), SetupAction()), true)
         toolbar.targetComponent = this
         setToolbar(toolbar.component)
 
+        openButton.addActionListener { open() }
         checkButton.addActionListener { grade() }
         val header = JPanel(BorderLayout()).apply {
             border = JBUI.Borders.empty(4, 8)
             add(title, BorderLayout.CENTER)
-            add(checkButton, BorderLayout.EAST)
+            add(JPanel().apply { isOpaque = false; add(openButton); add(checkButton) }, BorderLayout.EAST)
         }
         val view = if (browser != null) {
             Disposer.register(this, browser)
-            // Links (the quiz-only exercise's "im Browser öffnen") open in the system browser, not in the panel.
+            // Links never navigate the panel: an exercise link selects it, SeeSharp's own pages open in a Rider tab, the rest in the browser.
             browser.jbCefClient.addRequestHandler(object : CefRequestHandlerAdapter() {
                 override fun onBeforeBrowse(b: CefBrowser?, frame: CefFrame?, request: CefRequest?, userGesture: Boolean, isRedirect: Boolean): Boolean {
                     if (!userGesture) return false
-                    request?.url?.let { BrowserUtil.browse(it) }
+                    request?.url?.let { url -> ui { follow(url) } }
                     return true
                 }
             }, browser.cefBrowser)
@@ -180,15 +207,20 @@ class SeeSharpPanel(private val project: Project) : SimpleToolWindowPanel(true, 
         } else {
             pane.isEditable = false
             pane.putClientProperty(JEditorPane.HONOR_DISPLAY_PROPERTIES, true)
-            pane.addHyperlinkListener { if (it.eventType == HyperlinkEvent.EventType.ACTIVATED) it.url?.let(BrowserUtil::browse) }
+            // description, not url: java.net.URL cannot hold the seesharp: links.
+            pane.addHyperlinkListener { if (it.eventType == HyperlinkEvent.EventType.ACTIVATED) it.description?.let(::follow) }
             JBScrollPane(pane)
         }
         val details = JPanel(BorderLayout()).apply {
             add(header, BorderLayout.NORTH)
             add(view, BorderLayout.CENTER)
         }
+        val list = JPanel(BorderLayout()).apply {
+            add(search, BorderLayout.NORTH)
+            add(JBScrollPane(tree), BorderLayout.CENTER)
+        }
         setContent(OnePixelSplitter(true, "SeeSharp.splitter", 0.4f).apply {
-            firstComponent = JBScrollPane(tree)
+            firstComponent = list
             secondComponent = details
         })
         render()
@@ -221,7 +253,8 @@ class SeeSharpPanel(private val project: Project) : SimpleToolWindowPanel(true, 
         val pending = PropertiesComponent.getInstance().getValue(PENDING)
         exercises.firstOrNull { it.id == pending && it.openFile != null && isUnder(it.openFile, base) }?.let {
             PropertiesComponent.getInstance().unsetValue(PENDING)
-            select(it.id, trigger = true)
+            select(it.id, trigger = false)
+            openExercise(it.id, true) // the user asked for it with "Öffnen" in the other window
             return
         }
         if (firstLoad && detail == null)
@@ -232,21 +265,31 @@ class SeeSharpPanel(private val project: Project) : SimpleToolWindowPanel(true, 
     }
 
     private fun rebuildTree(message: String?, noCourse: Boolean = false) {
+        treeMessage = message
+        this.noCourse = noCourse
+        // The search matches exercise and module titles; a matching module keeps all its exercises.
+        val query = search.text.trim()
+        fun hit(s: String) = query.isEmpty() || s.contains(query, ignoreCase = true)
         val root = DefaultMutableTreeNode()
-        for (m in course?.modules.orEmpty())
-            root.add(DefaultMutableTreeNode(m).apply { m.exercises.forEach { add(DefaultMutableTreeNode(it, false)) } })
+        for (m in course?.modules.orEmpty()) {
+            val shown = if (hit("%02d %s".format(m.level, m.title))) m.exercises else m.exercises.filter { hit(it.title) }
+            if (shown.isNotEmpty() || query.isEmpty())
+                root.add(DefaultMutableTreeNode(m).apply { shown.forEach { add(DefaultMutableTreeNode(it, false)) } })
+        }
         rebuilding = true
         try {
             (tree.model as DefaultTreeModel).setRoot(root)
-            val next = root.children().asSequence().map { it as DefaultMutableTreeNode }.firstOrNull { (it.userObject as Module).let { m -> m.unlocked && !m.passed } }
-            next?.let { tree.expandPath(TreePath(it.path)) }
+            val modules = root.children().asSequence().map { it as DefaultMutableTreeNode }
+            if (query.isEmpty())
+                modules.firstOrNull { (it.userObject as Module).let { m -> m.unlocked && !m.passed } }?.let { tree.expandPath(TreePath(it.path)) }
+            else modules.forEach { tree.expandPath(TreePath(it.path)) }
             detail?.let { select(it.exercise.id, trigger = false) }
         } finally {
             rebuilding = false
         }
         tree.emptyText.clear()
         when {
-            course != null -> {}
+            course != null -> if (query.isNotEmpty()) tree.emptyText.text = t("noMatch")
             noCourse -> {
                 tree.emptyText.text = t("noCourse")
                 tree.emptyText.appendLine(t("setup"), SimpleTextAttributes.LINK_PLAIN_ATTRIBUTES) { setup() }
@@ -294,11 +337,34 @@ class SeeSharpPanel(private val project: Project) : SimpleToolWindowPanel(true, 
                     detail = d
                     lastGrade = null
                     render()
-                    if (navigate && ex.unlocked && ex.items.coding) navigate(ex, file, inProject)
+                    if (navigate && ex.unlocked) {
+                        if (ex.items.coding) navigate(ex, file, inProject) else openPage(exerciseUrl(serverUrl, ex.id), ex.title)
+                    }
                 }
             } catch (e: ApiException) {
                 ui { report(e) }
             }
+        }
+    }
+
+    /** "Öffnen": a coding exercise's file (or its project), else SeeSharp's own page of the exercise in a Rider tab. */
+    private fun open() {
+        detail?.exercise?.let { openExercise(it.id, true) }
+    }
+
+    /** SeeSharp's page in an editor tab (JCEF), so quiz and open questions are answered inside Rider; the browser without JCEF. */
+    private fun openPage(url: String, title: String) {
+        if (!JBCefApp.isSupported()) return BrowserUtil.browse(url)
+        HTMLEditorProvider.openEditor(project, "SeeSharp: $title", HTMLEditorProvider.Request.url(url))
+    }
+
+    private fun follow(link: String) {
+        val id = selectedId(link)
+        when {
+            id != null -> select(id, trigger = true)
+            serverUrl.isNotEmpty() && link.startsWith(serverUrl.trimEnd('/') + "/") ->
+                openPage(link, detail?.exercise?.title ?: "SeeSharp")
+            else -> BrowserUtil.browse(link)
         }
     }
 
@@ -507,11 +573,18 @@ class SeeSharpPanel(private val project: Project) : SimpleToolWindowPanel(true, 
     private fun render() {
         val d = detail
         val ex = d?.exercise
-        title.text = ex?.title ?: t("selectExercise")
+        title.text = ex?.title ?: if (course != null) t("overview") else t("selectExercise")
+        openButton.text = t("open")
+        openButton.isVisible = ex != null && ex.unlocked
+        openButton.isEnabled = api != null
         checkButton.text = t(if (running) "testsRunning" else "check")
         checkButton.isVisible = ex != null && ex.unlocked && ex.items.coding
         checkButton.isEnabled = !running && api != null
-        val html = if (d == null) "" else exerciseHtml(d, lastGrade, serverUrl, css())
+        val html = when {
+            d != null -> exerciseHtml(d, lastGrade, serverUrl, css())
+            course != null -> overviewHtml(course!!, css())
+            else -> ""
+        }
         if (html == shownHtml) return
         shownHtml = html
         if (browser != null) browser.loadHTML(html)

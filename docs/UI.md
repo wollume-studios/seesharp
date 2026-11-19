@@ -193,10 +193,14 @@ resolved paths back to `settings.json`; later starts only check that those
 files still exist. A stale path (Rider updated, Toolbox moved it) falls through
 to detection automatically. "Nicht gefunden" is not cached, so a machine
 without an IDE re-probes at every start — three `File.Exists` plus one
-`vswhere` run, cheap. The settings page lists every IDE with its path or
-"nicht gefunden" and a "Neu erkennen" button (`DetectIdes(force: true)` in a
-`Task.Run`, because `vswhere` is a child process). Editing the path by hand in
-`settings.json` works too; there is no text field for it.
+`vswhere` run, cheap. The settings page has a text field per IDE with the
+detected path ("nicht gefunden" as placeholder), "IDE-Pfade speichern" and
+"Neu erkennen" (`DetectIdes(force: true)` in a `Task.Run`, because `vswhere` is
+a child process). A typed path (surrounding quotes dropped) is saved to
+`settings.json` and wins while the file exists (user request 2026-11-19:
+detection misses some Rider installs); a path that does not exist keeps its
+field with "Diese Datei gibt es nicht – SeeSharp sucht die IDE weiter
+automatisch." and detection fills in. An empty field means detect.
 
 **Launch** (`IdeLauncher.Launch`): `Process.Start` with
 `UseShellExecute = false`, arguments through `ArgumentList` (spaces, umlauts

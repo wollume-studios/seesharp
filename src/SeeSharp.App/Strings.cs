@@ -130,6 +130,9 @@ internal static class Strings
     public static string IdesTitle => Resources.GetString(nameof(IdesTitle))!;
     public static string IdeNotFound => Resources.GetString(nameof(IdeNotFound))!;
     public static string RedetectIdes => Resources.GetString(nameof(RedetectIdes))!;
+    public static string IdePathHint => Resources.GetString(nameof(IdePathHint))!;
+    public static string IdePathMissing => Resources.GetString(nameof(IdePathMissing))!;
+    public static string IdePathsSave => Resources.GetString(nameof(IdePathsSave))!;
     public static string Copy => Resources.GetString(nameof(Copy))!;
     public static string Copied => Resources.GetString(nameof(Copied))!;
     public static string Grade => Resources.GetString(nameof(Grade))!;

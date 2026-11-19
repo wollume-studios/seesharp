@@ -21,12 +21,19 @@ else
 <button @onclick="State.LoadAsync">@Strings.Reload</button>
 
 <h2>@Strings.IdesTitle</h2>
-<ul>
-    @foreach (var ide in Enum.GetValues<IdeKind>())
-    {
-        <li>@Strings.ForIde(ide): <code>@(State.Ides.GetValueOrDefault(ide) ?? Strings.IdeNotFound)</code></li>
-    }
-</ul>
+@* User request 2026-11-19: detection misses some installs (e.g. a Rider outside Toolbox's usual folders), so each path can be typed in. *@
+<p class="hint">@Strings.IdePathHint</p>
+@foreach (var ide in Enum.GetValues<IdeKind>())
+{
+    <p>
+        <label>@Strings.ForIde(ide)<br /><input type="text" @bind="_ides[ide]" placeholder="@Strings.IdeNotFound" /></label>
+        @if (!string.IsNullOrWhiteSpace(_ides[ide]) && State.Ides.GetValueOrDefault(ide) != _ides[ide].Trim())
+        {
+            <br /><span class="bad">@Strings.IdePathMissing</span>
+        }
+    </p>
+}
+<button @onclick="SaveIdes">@Strings.IdePathsSave</button>
 <button @onclick="Redetect">@Strings.RedetectIdes</button>
 
 <TutorSettings />
@@ -34,11 +41,33 @@ else
 @code {
     private string _course = "";
     private string _book = "";
+    private readonly Dictionary<IdeKind, string> _ides = new();
 
     protected override void OnInitialized()
     {
         _course = State.Settings.CoursePath ?? State.CoursePath ?? "";
         _book = State.Settings.BookPdfPath ?? "";
+        ShowIdes();
+    }
+
+    private void ShowIdes()
+    {
+        foreach (var ide in Enum.GetValues<IdeKind>())
+            _ides[ide] = State.Ides.GetValueOrDefault(ide) ?? "";
+    }
+
+    /// <summary>A typed path wins while the file exists (IdeResolver.Resolve); a missing one falls back to detection, and the page says so.</summary>
+    private void SaveIdes()
+    {
+        var settings = Settings.Load();
+        string? Path(IdeKind ide) => string.IsNullOrWhiteSpace(_ides[ide]) ? null : _ides[ide].Trim().Trim('"');
+        settings.RiderPath = Path(IdeKind.Rider);
+        settings.VsCodePath = Path(IdeKind.VsCode);
+        settings.VisualStudioPath = Path(IdeKind.VisualStudio);
+        settings.Save();
+        State.DetectIdes();
+        foreach (var ide in Enum.GetValues<IdeKind>())
+            _ides[ide] = Path(ide) ?? State.Ides.GetValueOrDefault(ide) ?? ""; // keep what was typed, so a wrong path stays visible with its note
     }
 
     private async Task Save()
@@ -51,5 +80,9 @@ else
     }
 
     // vswhere is a child process; keep the circuit responsive while it runs.
-    private Task Redetect() => Task.Run(() => State.DetectIdes(force: true));
+    private async Task Redetect()
+    {
+        await Task.Run(() => State.DetectIdes(force: true));
+        ShowIdes();
+    }
 }

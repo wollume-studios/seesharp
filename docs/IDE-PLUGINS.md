@@ -215,7 +215,9 @@ logged.
 - **Tool window "SeeSharp"** (right): tree modules (`NN Title`, the first unlocked-unpassed one
   expanded) → exercises; icons lock / green check / open circle, "optional" in grey; the tooltip
   shows tasks done and, when locked, the missing skills with their level. Toolbar: *Aktualisieren*,
-  *SeeSharp starten*.
+  *SeeSharp starten*. A search field above the tree (2026-11-19) filters by exercise and module
+  title, case-insensitive; a matching module keeps all its exercises, and every shown module is
+  expanded.
 - **Not running** (no `server.json` or connection refused): the tree's empty text says "SeeSharp
   läuft nicht" with the links *SeeSharp starten* and *Aktualisieren*. Start runs
   `seesharp start --no-browser` (`~/.dotnet/tools/seesharp.exe` when it exists, else from `PATH`)
@@ -223,8 +225,16 @@ logged.
   <checkout>/src/SeeSharp.Cli -- start --no-browser` — a plain background process, argument list,
   no shell — then polls for up to two minutes; on failure a balloon shows the output's tail. API
   errors such as the exam gate show as the tree's empty text.
-- **Selecting an exercise**: `GET /api/exercise`; for an unlocked coding exercise `POST
-  …/workspace`. If `openFile` is neither under the project's base path nor in the project's
+- **Selecting an exercise** only loads it (`GET /api/exercise`) into the details (user request
+  2026-11-19: clicking must not open a project). Selecting a module, or nothing, shows the
+  **overview**: modules and mandatory exercises done, "Als Nächstes" (the first module with an
+  unlocked, unpassed mandatory exercise and those exercises, as links that select them —
+  `seesharp:select/<id>`), and every module with its count.
+- **Öffnen** (or a double-click on the exercise): for an unlocked coding exercise `POST
+  …/workspace`, then the file or the project as below. For an exercise without coding items it
+  opens SeeSharp's own page of the exercise (`/exercise/<id>`) in a Rider **editor tab**
+  (`HTMLEditorProvider`, JCEF), so quiz and open questions are answered inside Rider; without
+  JCEF in the browser. If `openFile` is neither under the project's base path nor in the project's
   content, it asks "Den Projektordner von „…“ in Rider öffnen?" (*Projekt öffnen* / *Neues Fenster*
   / *Nicht jetzt*) and opens the starter's single `.csproj` (else the folder) with
   `ProjectUtil.openOrImport`; the new project's SeeSharp tool window continues with that exercise
@@ -232,7 +242,8 @@ logged.
 - **Details** below the tree: title, **Prüfen** button, and the HTML (last result, then the
   instructions) in a `JBCefBrowser` when `JBCefApp.isSupported()`, else in a read-only
   `JEditorPane`. CSP `default-src 'none'` (no scripts), test names, messages, build errors and
-  output HTML-escaped; links open in the system browser.
+  output HTML-escaped. Links never navigate the panel: `seesharp:select/` selects the exercise,
+  links to the SeeSharp server open in an editor tab, anything else in the system browser.
 - **Prüfen** saves all documents, `POST …/grade` as a background task, then a balloon
   ("Bestanden! 2 von 2 Tests bestanden." / "Noch nicht bestanden. …"), the per-test table and a
   tree refresh.

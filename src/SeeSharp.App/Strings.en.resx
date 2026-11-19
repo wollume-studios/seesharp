@@ -75,6 +75,9 @@
   <data name="IdesTitle" xml:space="preserve"><value>IDEs</value></data>
   <data name="IdeNotFound" xml:space="preserve"><value>not found</value></data>
   <data name="RedetectIdes" xml:space="preserve"><value>Detect again</value></data>
+  <data name="IdePathHint" xml:space="preserve"><value>If an IDE is not found, enter the path to its program file yourself, e.g. …\JetBrains Rider\bin\rider64.exe. Empty = detect automatically.</value></data>
+  <data name="IdePathMissing" xml:space="preserve"><value>This file does not exist – SeeSharp keeps detecting the IDE automatically.</value></data>
+  <data name="IdePathsSave" xml:space="preserve"><value>Save IDE paths</value></data>
   <data name="LineLabel" xml:space="preserve"><value>Line {0}</value></data>
   <data name="Copy" xml:space="preserve"><value>Copy path</value></data>
   <data name="Copied" xml:space="preserve"><value>Copied</value></data>

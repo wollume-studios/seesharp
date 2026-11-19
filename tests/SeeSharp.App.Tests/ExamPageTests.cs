@@ -101,6 +101,11 @@ public sealed class ExamPageTests : IDisposable
             Assert.Contains("href=\"module/basics\"", side);
             Assert.Contains("href=\"exercise/first\"", Side(await http.GetStringAsync("/module/basics")));
 
+            // Each IDE path can be typed in on the settings page (detection is the fallback).
+            var settings = await http.GetStringAsync("/settings");
+            Assert.Equal(3, System.Text.RegularExpressions.Regex.Matches(settings, "placeholder=\"nicht gefunden\"").Count);
+            Assert.Contains("IDE-Pfade speichern", settings);
+
             // A locked exercise names the exercise that teaches the missing skill, not only its module.
             var locked = await http.GetStringAsync("/exercise/second");
             Assert.Contains("<a href=\"module/basics\">", locked[locked.IndexOf("</aside>", StringComparison.Ordinal)..]);

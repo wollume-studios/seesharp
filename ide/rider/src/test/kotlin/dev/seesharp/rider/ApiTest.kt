@@ -74,6 +74,26 @@ class ApiTest {
     }
 
     @Test
+    fun `overview - progress, the open exercises of the next module as select links, every module`() {
+        Strings.locale = "de"
+        fun ex(id: String, title: String, unlocked: Boolean, passed: Boolean, optional: Boolean = false) =
+            Exercise(id, title, optional, unlocked, passed, null, Items(1, if (passed) 1 else 0, true), null, null, null, null, null)
+        val course = Course("de", listOf(
+            Module("m0", 0, "Werkzeuge", true, true, listOf(ex("hallo", "Hallo", true, true))),
+            Module("m1", 1, "Grundlagen <x>", true, false, listOf(ex("a b", "Erste", true, false), ex("z", "Zusatz", true, false, optional = true),
+                ex("c", "Gesperrt", false, false))),
+        ))
+        val html = overviewHtml(course, "")
+        assertTrue(html.contains("1 von 2 Modulen abgeschlossen") && html.contains("1 von 3 Übungen bestanden"))
+        assertTrue(html.contains("01 Grundlagen &lt;x&gt;"))
+        assertTrue(html.contains("<a href=\"seesharp:select/a%20b\">Erste</a>"))
+        assertFalse(html.contains("seesharp:select/z") || html.contains("seesharp:select/c")) // optional and locked are not "next"
+        assertEquals("a b", selectedId("seesharp:select/a%20b"))
+        assertNull(selectedId("http://127.0.0.1:5000/exercise/a"))
+        assertEquals("http://127.0.0.1:5000/exercise/a%20b", exerciseUrl("http://127.0.0.1:5000/", "a b"))
+    }
+
+    @Test
     fun `strings - German by default, English fallback, same keys`() {
         fun keys(name: String) = Properties().apply { ApiTest::class.java.getResourceAsStream("/messages/$name")!!.reader(Charsets.UTF_8).use(::load) }.keys
         assertEquals(keys("SeeSharp.properties"), keys("SeeSharp_de.properties"))
